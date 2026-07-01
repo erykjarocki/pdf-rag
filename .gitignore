@@ -1,0 +1,21 @@
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# PDF files (copyrighted content)
+books/*.pdf
+
+# Generated data
+data/extracted/*
+data/chunks/*
+data/metadata/*
+
+# Qdrant storage
+vector_db/qdrant/*
+
+# Keep directory structure
+!data/extracted/.gitkeep
+!data/chunks/.gitkeep
+!data/metadata/.gitkeep
+!vector_db/qdrant/.gitkeep

@@ -1,0 +1,98 @@
+# PDF-RAG
+
+Local RAG system for PDF documents — chat with your books, articles, or any PDF via AI.
+
+Ask questions, get answers based **only on your PDF content**, with citations (book, chapter, page).
+
+## How it works
+
+```
+PDF → text extraction → chunks → embeddings (local) → Qdrant (vector DB)
+                                                          ↓
+OpenCode (MCP) ← search_book_tool ← retriever ← similarity search
+    ↓
+LLM answers based on found fragments
+```
+
+- **100% local** — no data leaves your machine
+- **OpenCode integration** — works as an MCP tool
+- **Any PDF** — books, papers, manuals, your notes
+- **Always cites sources** — book/chapter/page
+
+## Quick start
+
+```bash
+# 1. Clone
+git clone git@github.com:erykjarocki/pdf-rag.git
+cd pdf-rag
+
+# 2. Virtual environment
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 3. Start Qdrant (Docker)
+docker run -d --name qdrant -p 6333:6333 \
+  -v $(pwd)/vector_db/qdrant:/qdrant/storage \
+  qdrant/qdrant
+
+# 4. Copy your PDFs
+cp /path/to/your/files/*.pdf books/
+
+# 5. Index everything
+python src/ingest.py
+
+# 6. Run MCP server (standalone test)
+python src/mcp_server.py
+```
+
+## OpenCode integration
+
+Add to your OpenCode config (`~/.config/opencode/opencode.json`):
+
+```json
+"pdf-rag": {
+  "type": "local",
+  "command": [
+    "/path/to/pdf-rag/venv/bin/python",
+    "/path/to/pdf-rag/src/mcp_server.py"
+  ],
+  "enabled": true
+}
+```
+
+Then OpenCode automatically uses `search_book_tool` when you ask about your PDFs.
+
+## Project structure
+
+```
+pdf-rag/
+├── books/              # Place your PDFs here
+├── data/
+│   ├── extracted/      # Raw text from PDFs
+│   ├── chunks/         # Processed chunks
+│   └── metadata/       # Index metadata
+├── vector_db/qdrant/   # Qdrant storage
+├── src/
+│   ├── config.py       # Configuration
+│   ├── ingest.py       # PDF → Qdrant pipeline
+│   ├── embeddings.py   # Local embedding model
+│   ├── retriever.py    # search_book() function
+│   ├── mcp_server.py   # MCP server for OpenCode
+│   ├── api.py          # REST API (optional)
+│   └── qdrant_store.py # Qdrant client helpers
+├── venv/
+├── requirements.txt
+└── README.md
+```
+
+## Requirements
+
+- Python 3.10+
+- Docker (for Qdrant)
+- ~2 GB disk for embedding model cache
+
+## Adding more documents
+
+Just copy new PDFs to `books/` and re-run `python src/ingest.py`.
+The old index is overwritten — all documents are re-indexed.
