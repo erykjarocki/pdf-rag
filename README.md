@@ -89,8 +89,9 @@ pdf-rag/
 ## Requirements
 
 - Python 3.10+
-- Docker (for Qdrant)
-- ~2 GB disk for embedding model cache
+- Docker (for Qdrant vector database)
+- RAM: min 4 GB
+- Disk: ~1.5 GB
 
 ## Adding more documents
 
