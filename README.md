@@ -118,5 +118,18 @@ pdf-rag/
 
 ## Adding more documents
 
-Just copy new PDFs to `books/` and re-run `python src/ingest.py`.
-The old index is overwritten — all documents are re-indexed.
+```bash
+# Add a new PDF — just copy and index
+cp ~/Downloads/new-book.pdf books/
+python src/ingest.py
+# → new collection created, existing ones untouched
+
+# Re-index a specific book
+python src/ingest.py --reindex tom1
+
+# Remove a book
+python src/ingest.py --delete tom3
+
+# See what's indexed
+python src/ingest.py --list
+```
