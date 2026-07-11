@@ -12,11 +12,15 @@ app = FastAPI(title="PDF-RAG API", version="1.1.0")
 
 
 class QueryRequest(BaseModel):
+    """Request body for the /query endpoint."""
+
     question: str
     book: str | None = None
 
 
 class Fragment(BaseModel):
+    """A single text fragment returned from search."""
+
     text: str
     book: str
     chapter: str
@@ -25,12 +29,22 @@ class Fragment(BaseModel):
 
 
 class QueryResponse(BaseModel):
+    """Response body for the /query endpoint."""
+
     context: list[Fragment]
     formatted: str
 
 
 @app.post("/query")
 def query(req: QueryRequest):
+    """Search the knowledge base and return matching fragments.
+
+    Args:
+        req: QueryRequest with question and optional book filter.
+
+    Returns:
+        QueryResponse with structured context and formatted text.
+    """
     fragments = search_book(req.question, book=req.book)
     return QueryResponse(
         context=[
@@ -49,11 +63,20 @@ def query(req: QueryRequest):
 
 @app.get("/books")
 def list_books():
+    """List all indexed book collections."""
     return {"books": list_collections()}
 
 
 @app.delete("/books/{name}")
 def remove_book(name: str):
+    """Delete a book collection from the knowledge base.
+
+    Args:
+        name: Name of the collection to delete.
+
+    Raises:
+        HTTPException: 404 if the collection doesn't exist.
+    """
     client = get_qdrant_client()
     collections = list_collections(client)
     if name not in collections:
@@ -64,6 +87,7 @@ def remove_book(name: str):
 
 @app.get("/health")
 def health():
+    """Health check endpoint."""
     return {"status": "ok"}
 
 

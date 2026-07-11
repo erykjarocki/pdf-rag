@@ -8,6 +8,11 @@ _client = None
 
 
 def get_qdrant_client() -> QdrantClient:
+    """Get or create a Qdrant client connected to the Docker instance.
+
+    Returns:
+        QdrantClient connected to localhost:6333.
+    """
     global _client
     if _client is None:
         _client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
@@ -15,6 +20,15 @@ def get_qdrant_client() -> QdrantClient:
 
 
 def ensure_collection(name: str, client: QdrantClient | None = None):
+    """Create a Qdrant collection if it doesn't already exist.
+
+    Creates a collection with EMBED_DIM-dimensional cosine vectors
+    and a keyword index on the "book" field for filtered searches.
+
+    Args:
+        name: Collection name (use collection_name() to sanitize).
+        client: Optional QdrantClient instance (uses default if None).
+    """
     if client is None:
         client = get_qdrant_client()
 
@@ -40,6 +54,12 @@ def ensure_collection(name: str, client: QdrantClient | None = None):
 
 
 def delete_collection(name: str, client: QdrantClient | None = None):
+    """Delete a Qdrant collection and all its vectors.
+
+    Args:
+        name: Collection name to delete.
+        client: Optional QdrantClient instance (uses default if None).
+    """
     if client is None:
         client = get_qdrant_client()
     client.delete_collection(collection_name=name)
@@ -47,6 +67,14 @@ def delete_collection(name: str, client: QdrantClient | None = None):
 
 
 def list_collections(client: QdrantClient | None = None) -> list[str]:
+    """List all collection names in Qdrant.
+
+    Args:
+        client: Optional QdrantClient instance (uses default if None).
+
+    Returns:
+        List of collection name strings.
+    """
     if client is None:
         client = get_qdrant_client()
     return [c.name for c in client.get_collections().collections]

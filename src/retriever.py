@@ -4,6 +4,20 @@ from src.qdrant_store import get_qdrant_client, list_collections
 
 
 def search_book(query: str, top_k: int = TOP_K, book: str | None = None) -> list[dict]:
+    """Search the vector database for chunks relevant to a query.
+
+    If book is specified, searches only that collection. Otherwise searches
+    all collections proportionally and merges results by score.
+
+    Args:
+        query: Natural language question or search terms.
+        top_k: Maximum number of results to return (default: 8).
+        book: Optional book name to filter search to a single collection.
+
+    Returns:
+        List of dicts with 'text', 'book', 'chapter', 'start_page',
+        'end_page', and 'score' keys, sorted by relevance.
+    """
     query_vector = embed_query(query)
     client = get_qdrant_client()
 
@@ -41,6 +55,14 @@ def search_book(query: str, top_k: int = TOP_K, book: str | None = None) -> list
 
 
 def _format_results(points) -> list[dict]:
+    """Convert Qdrant result points into a standardized dict format.
+
+    Args:
+        points: List of Qdrant ScoredPoint objects.
+
+    Returns:
+        List of dicts with text, book, chapter, pages, and score.
+    """
     fragments = []
     for hit in points:
         p = hit.payload
@@ -56,6 +78,15 @@ def _format_results(points) -> list[dict]:
 
 
 def format_fragments_for_prompt(fragments: list[dict]) -> str:
+    """Format search results as numbered text blocks with Polish citations.
+
+    Args:
+        fragments: List of fragment dicts from search_book().
+
+    Returns:
+        Formatted string with numbered blocks and source citations
+        (e.g. "[1] text... Źródło: book, chapter, str. X-Y").
+    """
     lines = []
     for i, f in enumerate(fragments, 1):
         source = f"Źródło: {f['book']}"

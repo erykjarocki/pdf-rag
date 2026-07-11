@@ -21,6 +21,14 @@ CHAPTER_PATTERN = re.compile(
 
 
 def extract_pdf(pdf_path: str) -> list[dict]:
+    """Extract text from each page of a PDF using PyMuPDF.
+
+    Args:
+        pdf_path: Path to the PDF file.
+
+    Returns:
+        List of dicts with 'page_num' (1-indexed) and 'text' per page.
+    """
     doc = fitz.open(pdf_path)
     pages = []
     for i, page in enumerate(doc):
@@ -34,6 +42,16 @@ def extract_pdf(pdf_path: str) -> list[dict]:
 
 
 def detect_chapter(text: str) -> str | None:
+    """Detect chapter/section headings in text using regex patterns.
+
+    Looks for Polish ("Rozdział X", "CZĘŚĆ X") and English ("Chapter X") patterns.
+
+    Args:
+        text: Text chunk to search for chapter markers.
+
+    Returns:
+        Chapter name string if found, None otherwise.
+    """
     match = re.search(r"(Rozdział\s+[\dIVXLCDM]+)", text, re.IGNORECASE)
     if match:
         return match.group(1)
@@ -47,6 +65,14 @@ def detect_chapter(text: str) -> str | None:
 
 
 def get_page_boundaries(pages_data: list[dict]) -> list[int]:
+    """Calculate cumulative character positions marking page boundaries.
+
+    Args:
+        pages_data: List of dicts with 'text' per page.
+
+    Returns:
+        List of cumulative character offsets (one per page).
+    """
     boundaries = []
     total = 0
     for p in pages_data:
@@ -56,6 +82,15 @@ def get_page_boundaries(pages_data: list[dict]) -> list[int]:
 
 
 def get_full_text_with_page_info(pages_data: list[dict]) -> tuple[str, list[int]]:
+    """Join all page texts into one string and compute page boundary offsets.
+
+    Args:
+        pages_data: List of dicts with 'page_num' and 'text' per page.
+
+    Returns:
+        Tuple of (full_text, page_boundaries) where page_boundaries is a
+        list of cumulative character positions marking where each page ends.
+    """
     segments = []
     page_nums = []
     for p in pages_data:
@@ -67,6 +102,16 @@ def get_full_text_with_page_info(pages_data: list[dict]) -> tuple[str, list[int]
 
 
 def _page_at_position(page_boundaries: list[int], page_nums: list[int], pos: int) -> int:
+    """Find which page a character position falls on.
+
+    Args:
+        page_boundaries: Cumulative character offsets per page.
+        page_nums: Corresponding page numbers (1-indexed).
+        pos: Character position in the full text.
+
+    Returns:
+        Page number containing the given position.
+    """
     for i, boundary in enumerate(page_boundaries):
         if pos < boundary:
             return page_nums[i]
@@ -74,6 +119,20 @@ def _page_at_position(page_boundaries: list[int], page_nums: list[int], pos: int
 
 
 def chunk_text(text: str, page_boundaries: list[int], page_nums: list[int]) -> list[dict]:
+    """Split text into token-aware chunks with page tracking.
+
+    Uses the actual tokenizer to count tokens (not character heuristics).
+    Applies binary-search-style adjustment to hit target_tokens per chunk.
+    Overlaps chunks by CHUNK_OVERLAP tokens to preserve context.
+
+    Args:
+        text: Full concatenated text from all pages.
+        page_boundaries: Cumulative character offsets per page.
+        page_nums: Page numbers corresponding to boundaries.
+
+    Returns:
+        List of dicts with 'text', 'start_page', and 'end_page' per chunk.
+    """
     tokenizer = get_tokenizer()
     model = get_model()
     max_tokens = model.max_seq_length or 512
@@ -118,6 +177,17 @@ def chunk_text(text: str, page_boundaries: list[int], page_nums: list[int]) -> l
 
 
 def process_book(pdf_path: str) -> dict:
+    """Extract, chunk, and annotate a single PDF book.
+
+    Reads the PDF, splits into chunks with page tracking, detects chapter
+    headings, and saves raw extracted text to disk.
+
+    Args:
+        pdf_path: Path to the PDF file.
+
+    Returns:
+        Dict with 'book' name, 'chunks' list, and 'total_pages' count.
+    """
     book_name = os.path.splitext(os.path.basename(pdf_path))[0]
     print(f"  Processing: {book_name}")
 
@@ -153,6 +223,18 @@ def process_book(pdf_path: str) -> dict:
 
 
 def index_book(pdf_path: str, reindex: bool = False):
+    """Process a PDF and upsert its chunks into a Qdrant collection.
+
+    Creates the collection if needed, generates embeddings for all chunks,
+    and stores them in batches of 500.
+
+    Args:
+        pdf_path: Path to the PDF file.
+        reindex: If True, delete existing collection before re-indexing.
+
+    Returns:
+        Dict with 'book', 'chunks', and 'total_pages' from process_book().
+    """
     book_name = os.path.splitext(os.path.basename(pdf_path))[0]
     coll = collection_name(book_name)
 
@@ -204,6 +286,13 @@ def index_book(pdf_path: str, reindex: bool = False):
 
 
 def ingest_all(reindex: str | None = None):
+    """Index all PDFs in the books/ directory.
+
+    Skips already-indexed books unless reindex is specified.
+
+    Args:
+        reindex: If provided, only re-index this specific book name.
+    """
     pdf_files = sorted(glob.glob(os.path.join(BOOKS_DIR, "*.pdf")))
     if not pdf_files:
         print("No PDF files found in books/ directory.")
@@ -232,6 +321,11 @@ def ingest_all(reindex: str | None = None):
 
 
 def delete_book(book_name: str):
+    """Delete a book's collection from the Qdrant knowledge base.
+
+    Args:
+        book_name: Name of the book to remove (filename without extension).
+    """
     coll = collection_name(book_name)
     qdrant = get_qdrant_client()
     collections = list_collections(qdrant)
@@ -246,6 +340,7 @@ def delete_book(book_name: str):
 
 
 def list_books():
+    """Print all indexed collections with their chunk counts."""
     qdrant = get_qdrant_client()
     collections = list_collections(qdrant)
     if not collections:

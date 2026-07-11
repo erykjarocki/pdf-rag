@@ -7,6 +7,11 @@ _requires_prefix = None
 
 
 def get_model():
+    """Load and cache the SentenceTransformer embedding model (singleton).
+
+    Returns:
+        Loaded SentenceTransformer model with max_seq_length set.
+    """
     global _model
     if _model is None:
         _model = SentenceTransformer(EMBED_MODEL, trust_remote_code=True)
@@ -16,10 +21,20 @@ def get_model():
 
 
 def get_tokenizer():
+    """Return the tokenizer from the loaded embedding model.
+
+    Returns:
+        Tokenizer instance used by the SentenceTransformer model.
+    """
     return get_model().tokenizer
 
 
 def _check_prefixes():
+    """Check if the embedding model requires passage/query prefixes (E5 models).
+
+    Returns:
+        True if the model name contains "e5", indicating prefix requirement.
+    """
     global _requires_prefix
     if _requires_prefix is None:
         name = EMBED_MODEL.lower()
@@ -28,6 +43,16 @@ def _check_prefixes():
 
 
 def embed(texts: list[str]) -> list[list[float]]:
+    """Embed a list of text chunks into vectors (for indexing).
+
+    Prepends "passage: " prefix for E5 models. Returns normalized vectors.
+
+    Args:
+        texts: List of text strings to embed.
+
+    Returns:
+        List of 384-dimensional vectors (one per input text).
+    """
     model = get_model()
     if _check_prefixes():
         texts = [f"passage: {t}" for t in texts]
@@ -35,6 +60,16 @@ def embed(texts: list[str]) -> list[list[float]]:
 
 
 def embed_query(text: str) -> list[float]:
+    """Embed a single query string into a vector (for searching).
+
+    Prepends "query: " prefix for E5 models. Returns normalized vector.
+
+    Args:
+        text: Query string to embed.
+
+    Returns:
+        384-dimensional vector representing the query.
+    """
     model = get_model()
     if _check_prefixes():
         text = f"query: {text}"
