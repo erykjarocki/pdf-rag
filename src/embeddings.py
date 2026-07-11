@@ -10,7 +10,13 @@ def get_model():
     global _model
     if _model is None:
         _model = SentenceTransformer(EMBED_MODEL, trust_remote_code=True)
+        if _model.max_seq_length is None:
+            _model.max_seq_length = 512
     return _model
+
+
+def get_tokenizer():
+    return get_model().tokenizer
 
 
 def _check_prefixes():

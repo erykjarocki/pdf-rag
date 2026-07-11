@@ -11,7 +11,7 @@ import fitz
 
 from src.config import BOOKS_DIR, EXTRACTED_DIR, CHUNKS_FILE, METADATA_FILE
 from src.config import CHUNK_SIZE, CHUNK_OVERLAP, collection_name
-from src.embeddings import get_model, embed
+from src.embeddings import get_model, get_tokenizer, embed
 from src.qdrant_store import get_qdrant_client, ensure_collection, delete_collection, list_collections
 
 CHAPTER_PATTERN = re.compile(
@@ -74,21 +74,24 @@ def _page_at_position(page_boundaries: list[int], page_nums: list[int], pos: int
 
 
 def chunk_text(text: str, page_boundaries: list[int], page_nums: list[int]) -> list[dict]:
+    tokenizer = get_tokenizer()
     model = get_model()
-    tokenizer = model.tokenizer
+    max_tokens = model.max_seq_length or 512
+    target_tokens = min(CHUNK_SIZE, max_tokens - 10)
     chunks = []
 
-    approx_chars_per_chunk = int(CHUNK_SIZE * 4)
+    init_chars = int(target_tokens * 2.5)
     overlap_chars = int(CHUNK_OVERLAP * 4)
     char_pos = 0
 
     while char_pos < len(text):
-        end_pos = min(char_pos + approx_chars_per_chunk, len(text))
+        end_pos = min(char_pos + init_chars, len(text))
         raw = text[char_pos:end_pos]
 
         token_count = len(tokenizer.encode(raw))
-        while token_count > CHUNK_SIZE and end_pos > char_pos + 50:
-            end_pos -= 10
+        while token_count > target_tokens and end_pos > char_pos + 50:
+            end_pos -= max(1, (token_count - target_tokens) * 2)
+            end_pos = max(end_pos, char_pos + 50)
             raw = text[char_pos:end_pos]
             token_count = len(tokenizer.encode(raw))
 
@@ -187,10 +190,14 @@ def index_book(pdf_path: str, reindex: bool = False):
             },
         })
 
-    qdrant.upsert(
-        collection_name=coll,
-        points=points,
-    )
+    batch_size = 500
+    for start in range(0, len(points), batch_size):
+        batch = points[start:start + batch_size]
+        qdrant.upsert(
+            collection_name=coll,
+            points=batch,
+        )
+        print(f"    Upserted {start + len(batch)}/{len(points)} points")
 
     print(f"  Done! Indexed {len(chunks)} chunks into '{coll}'.")
     return result
