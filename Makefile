@@ -1,13 +1,18 @@
 .PHONY: setup install ingest serve mcp qdrant start stop clean lint fmt docs docs-serve
 
+PY = venv/bin/python
+PIP = venv/bin/pip
+MKDOCS = venv/bin/mkdocs
+RUFF = venv/bin/ruff
+
 # Setup (first time)
 setup:
 	python3 -m venv venv
-	. venv/bin/activate && pip install -e ".[dev]"
-	@echo "\n✅ Done. Use 'source venv/bin/activate' or run commands via 'make <cmd>'"
+	$(PIP) install -e ".[dev]"
+	@echo "\n✅ Done. Run commands via 'make <cmd>'"
 
 install:
-	pip install -e ".[dev]"
+	$(PIP) install -e ".[dev]"
 
 # Qdrant
 qdrant:
@@ -23,20 +28,20 @@ stop:
 
 # PDF pipeline
 ingest:
-	python src/ingest.py $(ARGS)
+	$(PY) src/ingest.py $(ARGS)
 
 serve:
-	python src/api.py
+	$(PY) src/api.py
 
 mcp:
-	python src/mcp_server.py
+	$(PY) src/mcp_server.py
 
 # Dev tools
 lint:
-	ruff check src/
+	$(RUFF) check src/
 
 fmt:
-	ruff format src/
+	$(RUFF) format src/
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
@@ -44,7 +49,7 @@ clean:
 
 # Documentation
 docs:
-	mkdocs build
+	$(MKDOCS) build
 
 docs-serve:
-	mkdocs serve
+	$(MKDOCS) serve
