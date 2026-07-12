@@ -2,7 +2,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from qdrant_client.http.models import Distance, VectorParams
 
-from src.config import QDRANT_HOST, QDRANT_PORT, EMBED_DIM
+from src.config import EMBED_DIM, QDRANT_HOST, QDRANT_PORT
 
 _client = None
 

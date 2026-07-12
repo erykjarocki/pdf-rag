@@ -1,18 +1,27 @@
-import json
+import argparse
+import glob
 import os
 import re
 import sys
-import glob
-import argparse
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import fitz
 
-from src.config import BOOKS_DIR, EXTRACTED_DIR, CHUNKS_FILE, METADATA_FILE
-from src.config import CHUNK_SIZE, CHUNK_OVERLAP, collection_name
-from src.embeddings import get_model, get_tokenizer, embed
-from src.qdrant_store import get_qdrant_client, ensure_collection, delete_collection, list_collections
+from src.config import (
+    BOOKS_DIR,
+    CHUNK_OVERLAP,
+    CHUNK_SIZE,
+    EXTRACTED_DIR,
+    collection_name,
+)
+from src.embeddings import embed, get_model, get_tokenizer
+from src.qdrant_store import (
+    delete_collection,
+    ensure_collection,
+    get_qdrant_client,
+    list_collections,
+)
 
 CHAPTER_PATTERN = re.compile(
     r"(?:^|\n)\s*(?:Rozdział\s+[IVXLCDM\d]+|Chapter\s+\d+|CZĘŚĆ\s+[IVXLCDM\d]+|Tom\s+\d+)",

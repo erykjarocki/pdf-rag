@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastmcp import FastMCP
-from src.retriever import search_book, format_fragments_for_prompt
+
 from src.qdrant_store import list_collections
+from src.retriever import format_fragments_for_prompt, search_book
 
 mcp = FastMCP("pdf-rag")
 

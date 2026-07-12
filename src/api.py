@@ -1,12 +1,13 @@
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from src.retriever import search_book, format_fragments_for_prompt
-from src.qdrant_store import list_collections, delete_collection, get_qdrant_client
+
+from src.qdrant_store import delete_collection, get_qdrant_client, list_collections
+from src.retriever import format_fragments_for_prompt, search_book
 
 app = FastAPI(title="PDF-RAG API", version="1.1.0")
 
