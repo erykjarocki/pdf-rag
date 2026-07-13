@@ -9,7 +9,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.chapter_detection import ChapterDetector
 from src.chunking import chunk_text
-from src.config import BOOKS_DIR, EXTRACTED_DIR, collection_name
+from src.config import BOOKS_DIR, EXTRACTED_DIR
+from src.utils import collection_name
 from src.embeddings import embed
 from src.extraction import extract_pdf, get_full_text_with_page_info
 from src.qdrant_store import (

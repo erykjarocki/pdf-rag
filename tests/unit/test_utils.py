@@ -1,6 +1,6 @@
 import pytest
 
-from src.config import collection_name
+from src.utils import collection_name
 
 
 @pytest.mark.unit
