@@ -78,12 +78,23 @@ The key challenge in testing a RAG system is avoiding expensive/slow operations 
 
 ## CI Integration
 
-GitHub Actions runs unit + integration tests on every PR (see `.github/workflows/ci.yml`):
+GitHub Actions runs a 2-stage pipeline on every PR (see `.github/workflows/ci.yml`):
 
 - **Triggers:** Push/PR to `main` when `src/`, `tests/`, or `pyproject.toml` change
-- **Matrix:** Python 3.10, 3.11, 3.12
-- **Steps:** Lint (ruff) → Unit tests → Integration tests
+- **Python:** 3.12 (single version — project is a local tool, not a library)
+- **Stage 1:** Install dependencies (warms pip cache)
+- **Stage 2 (parallel):** Lint (ruff), Unit tests, Integration tests
+- **Optimization:** CPU-only PyTorch installed first (~150MB vs ~3GB with CUDA)
 - **No Docker needed** — all tests use in-memory Qdrant
+
+### Testing CI Locally
+
+```bash
+# Run the same commands CI executes:
+ruff check src/ tests/
+pytest tests/unit/ -v -m unit
+pytest tests/integration/ -v -m integration
+```
 
 ## Adding New Tests
 
