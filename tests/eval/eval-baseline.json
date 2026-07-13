@@ -1,5 +1,5 @@
 {
   "recall_at_2": 1.0,
-  "precision_at_2": 0.8333,
+  "precision_at_2": 1.0,
   "mrr": 1.0
 }

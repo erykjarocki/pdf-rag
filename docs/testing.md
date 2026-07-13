@@ -76,11 +76,11 @@ Query: "What is the capital of France?"
 Query: "Tell me about Berlin"
   [1] score=0.81  page=2  ✓ RELEVANT
       ...The Berlin Wall divided the city from August 13, 1961...
-  [2] score=0.80  page=1
-      ...Chapter 2: Germany...
+  [2] score=0.80  page=2  ✓ RELEVANT
+      ...Oktoberfest, the world's largest folk festival...
 
 ----------------------------------------------------------------------
-Recall@2: 1.00 | Precision@2: 0.83 | MRR: 1.00
+Recall@2: 1.00 | Precision@2: 1.00 | MRR: 1.00
 ----------------------------------------------------------------------
 ```
 
@@ -88,9 +88,9 @@ After the run, `tests/eval/eval-report.json` contains the full structured result
 
 #### Why a 3-topic synthetic PDF?
 
-The test PDF is intentionally minimal — three pages, three topics (France/Germany/Japan), ~4600 characters total. This is deliberate:
+The test PDF is intentionally minimal — three pages, three topics (France/Germany/Japan), ~10000 characters total. This is deliberate:
 
-- **Deterministic chunking.** A ~4600-char document produces ~7 chunks (with 384-token chunk size). This is enough to test retrieval discrimination without being overwhelming.
+- **Deterministic chunking.** A ~10000-char document produces ~11 chunks (with 384-token chunk size, page-boundary-aware splitting). This is enough to test retrieval discrimination without being overwhelming.
 - **Fast feedback.** The model loads once (~1s), extraction is instant, embedding is a single batch. Total: ~8s. A real book would take minutes.
 - **Focused assertions.** We're testing the *pipeline wiring*, not the model's knowledge. If "Paris", "Berlin", and "Tokyo" are in separate chunks and the model can't distinguish them, something is broken in the pipeline — not the model.
 - **Easy to debug.** When a metric fails, you know exactly which chunk should have matched. No need to inspect 50 pages of output.
@@ -114,11 +114,11 @@ The test uses `tests/eval/labels.json` — 9 labeled queries (3 per topic) with 
 
 | Metric | What it measures | Threshold | Why this threshold |
 |--------|-----------------|-----------|-------------------|
-| **Recall@2** | Did the relevant chunk appear in top-2? | >= 0.8 | With 7 chunks and 1 relevant per query, recall=1.0 means all relevant pages are found. 0.8 allows one query to miss. |
-| **Precision@2** | Are top-2 results mostly relevant? | >= 0.5 | With 7 chunks, precision@2 can range from 0 (both irrelevant) to 1.0 (both relevant). 0.5 means at least half of top-2 are relevant. |
-| **MRR** | How high up is the first relevant result? | >= 0.7 | MRR=1.0 means relevant result is always rank-1. 0.7 means average rank ~1.4, which is acceptable for a 7-chunk corpus. |
+| **Recall@2** | Did the relevant chunk appear in top-2? | >= 0.8 | With 11 chunks and 1 relevant per query, recall=1.0 means all relevant pages are found. 0.8 allows one query to miss. |
+| **Precision@2** | Are top-2 results mostly relevant? | >= 0.5 | With 11 chunks, precision@2 can range from 0 (both irrelevant) to 1.0 (both relevant). 0.5 means at least half of top-2 are relevant. |
+| **MRR** | How high up is the first relevant result? | >= 0.7 | MRR=1.0 means relevant result is always rank-1. 0.7 means average rank ~1.4, which is acceptable for an 11-chunk corpus. |
 
-**Why these specific thresholds?** They're calibrated for a 7-chunk corpus where topics should be well-separated. If the model can't distinguish Paris from Berlin from Tokyo in a tiny PDF, it won't work on real books. The thresholds are intentionally strict — this is a sanity check, not a lenient pass.
+**Why these specific thresholds?** They're calibrated for an 11-chunk corpus where topics should be well-separated. If the model can't distinguish Paris from Berlin from Tokyo in a tiny PDF, it won't work on real books. The thresholds are intentionally strict — this is a sanity check, not a lenient pass.
 
 **How to extend:** Add queries to `tests/eval/labels.json`. Each entry needs:
 ```json
@@ -233,7 +233,7 @@ This means:
 - **Small, predictable PDFs** — not real books. We control the ground truth.
 - **Real model, not mocked** — mocked embeddings would test nothing. The model must actually separate Paris from Berlin.
 - **Quantified metrics** — not just "does it return something". Recall@k, Precision@k, MRR give a number you can track over time.
-- **Strict thresholds** — on a 2-chunk corpus, the model should be near-perfect. Loosening thresholds hides regressions.
+- **Strict thresholds** — on a small corpus, the model should be near-perfect. Loosening thresholds hides regressions.
 
 ### Example: Testing a New Function
 

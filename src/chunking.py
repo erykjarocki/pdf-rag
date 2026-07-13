@@ -7,6 +7,14 @@ from src.embeddings import get_model, get_tokenizer
 from src.extraction import page_at_position
 
 
+def _page_end_offset(page_boundaries: list[int], pos: int) -> int:
+    """Return the character offset where the page containing pos ends."""
+    for boundary in page_boundaries:
+        if pos < boundary:
+            return boundary
+    return page_boundaries[-1] if page_boundaries else 0
+
+
 def chunk_text(text: str, page_boundaries: list[int], page_nums: list[int]) -> list[dict]:
     """Split text into token-aware chunks with page tracking.
 
@@ -34,6 +42,11 @@ def chunk_text(text: str, page_boundaries: list[int], page_nums: list[int]) -> l
 
     while char_pos < len(text):
         end_pos = min(char_pos + init_chars, len(text))
+
+        # Clamp end_pos to current page boundary to avoid cross-page chunks
+        page_end = _page_end_offset(page_boundaries, char_pos)
+        end_pos = min(end_pos, page_end - 1)
+
         raw = text[char_pos:end_pos]
 
         token_count = len(tokenizer.encode(raw))
@@ -56,6 +69,11 @@ def chunk_text(text: str, page_boundaries: list[int], page_nums: list[int]) -> l
             "start_page": start_page,
             "end_page": end_page,
         })
+
+        # If we've reached the end of a page, jump to the next page
+        if end_pos >= page_end - 1:
+            char_pos = page_end
+            continue
 
         next_pos = end_pos - overlap_chars
         if next_pos <= char_pos:
