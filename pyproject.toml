@@ -20,6 +20,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "pytest-mock",
+    "pytest-html",
 ]
 
 [project.scripts]

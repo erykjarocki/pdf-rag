@@ -1,5 +1,7 @@
+import json
 import os
 import sys
+from pathlib import Path
 
 import fitz
 import pytest
@@ -18,6 +20,132 @@ from src.qdrant_store import ensure_collection
 
 BOOK_NAME = "tiny_sample"
 COLLECTION_NAME = "tiny_sample"
+
+REPORT_PATH = Path(__file__).parent / "eval-report.json"
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Print terminal summary and write eval-report.json after all tests."""
+    results = getattr(session, "eval_results", [])
+    if not results:
+        return
+
+    # Compute metrics
+    recalls = [item["recall_at_k"] for item in results]
+    precisions = [item["precision_at_k"] for item in results]
+    rrs = [item["reciprocal_rank"] for item in results]
+
+    avg_recall = sum(recalls) / len(recalls)
+    avg_precision = sum(precisions) / len(precisions)
+    avg_mrr = sum(rrs) / len(rrs)
+
+    # Terminal summary
+    terminal = session.config.get_terminal_writer()
+    terminal.write("\n")
+    terminal.write("=" * 70 + "\n")
+    terminal.write("EVAL RESULTS\n")
+    terminal.write("=" * 70 + "\n\n")
+
+    for item in results:
+        terminal.write(f'Query: "{item["query"]}"\n')
+        for frag in item["retrieved_fragments"]:
+            relevant = frag["is_relevant"]
+            mark = "  \u2713 RELEVANT" if relevant else ""
+            terminal.write(
+                f'  [{frag["rank"]}] score={frag["score"]:.2f}'
+                f'  page={frag["start_page"]}{mark}\n'
+            )
+            for line in frag["text"].split("\n"):
+                terminal.write(f"      {line}\n")
+            terminal.write("\n")
+        terminal.write("\n")
+
+    terminal.write("-" * 70 + "\n")
+    terminal.write(
+        f"Recall@2: {avg_recall:.2f} | "
+        f"Precision@2: {avg_precision:.2f} | "
+        f"MRR: {avg_mrr:.2f}\n"
+    )
+    terminal.write("-" * 70 + "\n\n")
+
+    # Write JSON report
+    report = {
+        "queries": results,
+        "metrics": {
+            "recall_at_2": round(avg_recall, 4),
+            "precision_at_2": round(avg_precision, 4),
+            "mrr": round(avg_mrr, 4),
+        },
+    }
+    REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False))
+
+
+def collect_eval_result(session, query, results, relevant_pages, k=2):
+    """Run metrics on a query result and store on session for the summary hook."""
+    if not hasattr(session, "eval_results"):
+        session.eval_results = []
+
+    # Deduplicate: only store once per query
+    if any(item["query"] == query for item in session.eval_results):
+        top_k = results[:k]
+        return (
+            _recall_at_k(results, relevant_pages, k),
+            _precision_at_k(results, relevant_pages, k),
+            _mrr(results, relevant_pages),
+        )
+
+    top_k = results[:k]
+    rr = _mrr(results, relevant_pages)
+    recall = _recall_at_k(results, relevant_pages, k)
+    precision = _precision_at_k(results, relevant_pages, k)
+
+    fragments = []
+    for i, r in enumerate(top_k, 1):
+        fragments.append(
+            {
+                "rank": i,
+                "text": r["text"],
+                "score": round(r["score"], 4),
+                "start_page": r["start_page"],
+                "end_page": r["end_page"],
+                "chapter": r.get("chapter", ""),
+                "is_relevant": r["start_page"] in relevant_pages,
+            }
+        )
+
+    session.eval_results.append(
+        {
+            "query": query,
+            "relevant_pages": relevant_pages,
+            "retrieved_fragments": fragments,
+            "recall_at_k": recall,
+            "precision_at_k": precision,
+            "reciprocal_rank": rr,
+        }
+    )
+
+    return recall, precision, rr
+
+
+def _precision_at_k(results, relevant_pages, k):
+    top_k = results[:k]
+    relevant = sum(1 for r in top_k if r["start_page"] in relevant_pages)
+    return relevant / k
+
+
+def _recall_at_k(results, relevant_pages, k):
+    if not relevant_pages:
+        return 1.0
+    top_k = results[:k]
+    found = sum(1 for r in top_k if r["start_page"] in relevant_pages)
+    return found / len(relevant_pages)
+
+
+def _mrr(results, relevant_pages):
+    for i, r in enumerate(results, 1):
+        if r["start_page"] in relevant_pages:
+            return 1.0 / i
+    return 0.0
 
 
 @pytest.fixture(scope="module")

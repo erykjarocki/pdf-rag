@@ -44,6 +44,8 @@ Full pipeline with real embeddings and in-memory Qdrant. Generates a tiny test P
 make test-eval
 # or directly:
 pytest tests/eval/ -v -m eval
+# with HTML report:
+pytest tests/eval/ -v -m eval --html=eval-report.html --self-contained-html
 ```
 
 **What's covered:**
@@ -53,6 +55,30 @@ pytest tests/eval/ -v -m eval
 - Retrieval quality: queries retrieve semantically correct chunks
 - Citation formatting with Polish source labels
 - **Quantified metrics:** Recall@2, Precision@2, MRR over labeled queries
+
+**What you see in the terminal:**
+```
+tests/eval/test_e2e_pipeline.py::TestRetrievalMetrics::test_recall_at_2
+  recall@2 = 1.00 (threshold: 0.80)
+PASSED
+...
+======================================================================
+EVAL RESULTS
+======================================================================
+
+Query: "What is the capital of France?"
+  [1] score=0.86  page=1  ✓ RELEVANT
+      Chapter 1: France
+      Paris is the capital and most populous city of France...
+  [2] score=0.75  page=2
+      Berlin is the capital and largest city of Germany...
+
+----------------------------------------------------------------------
+Recall@2: 1.00 | Precision@2: 0.50 | MRR: 1.00
+----------------------------------------------------------------------
+```
+
+After the run, `tests/eval/eval-report.json` contains the full structured results with per-query fragment text, scores, and relevance flags.
 
 #### Why a 2-page PDF?
 
@@ -97,6 +123,22 @@ The test uses `tests/eval/labels.json` — 6 labeled queries with expected relev
 ```
 
 As the corpus grows, tighten thresholds. With 10+ chunks, expect Precision@2 to drop — consider raising k or adding a Recall@5 metric.
+
+#### How scores are calculated
+
+For a query with `relevant_pages = [1]` and top-2 results with pages `[1, 2]`:
+
+```
+Recall@2     = |relevant found in top-k| / |total relevant|  = 1/1 = 1.00
+Precision@2  = |relevant found in top-k| / k                 = 1/2 = 0.50
+MRR          = 1 / rank of first relevant result              = 1/1 = 1.00
+```
+
+For a query where the relevant chunk is at rank-2: `MRR = 1/2 = 0.50`.
+
+Each query is evaluated independently, then metrics are averaged across all queries. The `pytest_sessionfinish` hook in `tests/eval/conftest.py` collects per-query results, computes averages, prints a terminal summary, and writes `tests/eval/eval-report.json`.
+
+The `collect_eval_result()` function in `tests/eval/conftest.py` computes per-query metrics and stores per-fragment details (chunk text, cosine score, rank, relevance flag) that feed into both the terminal output and JSON report. This gives full visibility into what the model retrieved for each query.
 
 ## Running All Tests
 
