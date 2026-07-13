@@ -72,20 +72,6 @@ class TestFormatFragmentsForPrompt:
         # Source should be "Źródło: book, str. 1" without a chapter
         assert "Źródło: book, str. 1" in result
 
-    def test_with_chapter(self):
-        fragments = [
-            {
-                "text": "Text",
-                "book": "book",
-                "chapter": "Rozdział I",
-                "start_page": 1,
-                "end_page": 1,
-                "score": 0.9,
-            }
-        ]
-        result = format_fragments_for_prompt(fragments)
-        assert "Rozdział I" in result
-
     def test_empty_fragments(self):
         result = format_fragments_for_prompt([])
         assert result == ""

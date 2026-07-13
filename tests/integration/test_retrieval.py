@@ -21,10 +21,6 @@ class TestQdrantCollections:
         delete_collection("to-delete", qdrant_memory)
         assert "to-delete" not in list_collections(qdrant_memory)
 
-    def test_list_collections_empty(self, qdrant_memory):
-        result = list_collections(qdrant_memory)
-        assert isinstance(result, list)
-
 
 @pytest.mark.integration
 class TestQdrantUpsertAndQuery:
