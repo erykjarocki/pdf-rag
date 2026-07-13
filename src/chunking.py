@@ -9,13 +9,16 @@ from src.extraction import page_at_position
 
 def _page_end_offset(page_boundaries: list[int], pos: int) -> int:
     """Return the character offset where the page containing pos ends."""
+
     for boundary in page_boundaries:
         if pos < boundary:
             return boundary
     return page_boundaries[-1] if page_boundaries else 0
 
 
-def chunk_text(text: str, page_boundaries: list[int], page_nums: list[int]) -> list[dict]:
+def chunk_text(
+    text: str, page_boundaries: list[int], page_nums: list[int]
+) -> list[dict]:
     """Split text into token-aware chunks with page tracking.
 
     Uses the actual tokenizer to count tokens (not character heuristics).
@@ -64,11 +67,13 @@ def chunk_text(text: str, page_boundaries: list[int], page_nums: list[int]) -> l
         start_page = page_at_position(page_boundaries, page_nums, char_pos)
         end_page = page_at_position(page_boundaries, page_nums, end_pos)
 
-        chunks.append({
-            "text": raw,
-            "start_page": start_page,
-            "end_page": end_page,
-        })
+        chunks.append(
+            {
+                "text": raw,
+                "start_page": start_page,
+                "end_page": end_page,
+            }
+        )
 
         # If we've reached the end of a page, jump to the next page
         if end_pos >= page_end - 1:
