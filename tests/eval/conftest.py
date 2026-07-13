@@ -24,6 +24,7 @@ COLLECTION_NAME = "tiny_sample"
 GUTENBERG_COLLECTION = "gutenberg_prince"
 
 REPORT_PATH = Path(__file__).parent / "eval-report.json"
+BASELINE_PATH = Path(__file__).parent / "eval-baseline.json"
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -68,6 +69,30 @@ def pytest_sessionfinish(session, exitstatus):
         f"Precision@2: {avg_precision:.2f} | "
         f"MRR: {avg_mrr:.2f}\n"
     )
+
+    # Show baseline delta if available
+    baseline = None
+    if BASELINE_PATH.exists():
+        try:
+            baseline = json.loads(BASELINE_PATH.read_text())
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    if baseline:
+        def _fmt_delta(cur, base):
+            diff = cur - base
+            if abs(diff) < 0.005:
+                return "= 0.00"
+            sign = "+" if diff > 0 else ""
+            return f"{sign}{diff:.2f}"
+
+        terminal.write(
+            f"          "
+            f"(base: {_fmt_delta(avg_recall, baseline.get('recall_at_2', 0))} | "
+            f"{_fmt_delta(avg_precision, baseline.get('precision_at_2', 0))} | "
+            f"{_fmt_delta(avg_mrr, baseline.get('mrr', 0))})\n"
+        )
+
     terminal.write("-" * 70 + "\n\n")
 
     # Write JSON report
