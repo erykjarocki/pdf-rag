@@ -99,6 +99,33 @@ The test PDF is intentionally minimal — three pages, three topics (France/Germ
 
 This is standard practice for E2E pipeline tests. Real-world PDFs belong in manual evaluation, not automated CI.
 
+#### Gutenberg eval (real content)
+
+The Gutenberg eval (`test_gutenberg_eval.py`) tests retrieval with real prose — 26 chapters of *The Prince* by Machiavelli fetched from Project Gutenberg (~200K chars, ~268 chunks). No PDF involved: plain text is chunked directly via `chunk_text()`.
+
+```bash
+pytest tests/eval/test_gutenberg_eval.py -v -m eval
+```
+
+**What it tests:**
+- Retrieval quality across 22 labeled queries (15 single-chapter + 7 cross-chapter)
+- Semantic understanding of a real treatise (not synthetic keyword-separated content)
+- Cross-chapter topic retrieval (e.g., "military organization" → chapters XII, XIII, XIV)
+
+**Thresholds:**
+
+| Metric | Threshold | Notes |
+|--------|-----------|-------|
+| Recall@2 | >= 0.70 | 268 chunks is harder than 11; relaxed from 0.80 |
+| Precision@2 | >= 0.50 | Same as tiny_pdf — at least half of top-2 should be relevant |
+| MRR | >= 0.60 | Relaxed from 0.7 — more chunks means lower rank positions |
+
+**How it works:**
+1. `gutenberg_corpus.py` fetches the text, strips header/footer, splits by `CHAPTER` markers
+2. `chunk_text()` splits into ~268 chunks (384-token chunks, 50-token overlap)
+3. Chunks are embedded and stored in in-memory Qdrant
+4. 22 queries are run and scored against `labels_gutenberg.json`
+
 #### Why not test with a real book?
 
 Testing with a 300-page book would:
@@ -205,8 +232,15 @@ tests/
 │   ├── test_retrieval.py       # Qdrant round-trip (in-memory)
 │   └── test_api.py             # FastAPI TestClient endpoint tests
 └── eval/
-    ├── conftest.py             # tiny PDF generator, full-pipeline fixture
-    └── test_e2e_pipeline.py    # E2E: extract → embed → store → query → format
+    ├── conftest.py             # tiny PDF + Gutenberg fixtures, metric functions
+    ├── gutenberg_corpus.py     # fetch/split The Prince from Project Gutenberg
+    ├── labels.json             # 13 labeled queries (tiny_pdf, 3 topics)
+    ├── labels_gutenberg.json   # 22 labeled queries (Gutenberg, 26 chapters)
+    ├── eval-baseline.json      # baseline metrics for regression detection
+    ├── compare_to_baseline.py  # diffs current vs baseline scores
+    ├── generate_report.py      # custom HTML report from eval-report.json
+    ├── test_e2e_pipeline.py    # E2E: tiny PDF smoke test (15 tests)
+    └── test_gutenberg_eval.py  # E2E: Gutenberg retrieval quality (8 tests)
 ```
 
 ## How Mocking Works

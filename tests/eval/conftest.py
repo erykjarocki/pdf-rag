@@ -14,12 +14,14 @@ import src.qdrant_store as qdrant_store
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+from src.chunking import chunk_text
 from src.embeddings import embed
 from src.ingest import process_book
 from src.qdrant_store import ensure_collection
 
 BOOK_NAME = "tiny_sample"
 COLLECTION_NAME = "tiny_sample"
+GUTENBERG_COLLECTION = "gutenberg_prince"
 
 REPORT_PATH = Path(__file__).parent / "eval-report.json"
 
@@ -415,5 +417,81 @@ def indexed_qdrant(tiny_pdf, tmp_path_factory):
     ingest.EXTRACTED_DIR = original_extracted
     try:
         in_memory_client.delete_collection(collection_name=COLLECTION_NAME)
+    except Exception:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Gutenberg corpus fixtures (real content, no PDF)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def gutenberg_corpus():
+    """Fetch The Prince from Gutenberg, split into chapters.
+
+    Returns (text, page_boundaries, page_nums) — 26 chapters.
+    Cached via lru_cache so multiple fixtures share one fetch.
+    """
+    from tests.eval.gutenberg_corpus import fetch_and_split
+    return fetch_and_split()
+
+
+@pytest.fixture(scope="module")
+def gutenberg_indexed_qdrant(gutenberg_corpus, tmp_path_factory):
+    """Chunk, embed, and index the Gutenberg corpus into in-memory Qdrant.
+
+    Uses chunk_text() directly — no PDF parsing, no extraction.
+    Returns (qdrant_client, collection_name, chunks).
+    """
+    text, page_boundaries, page_nums = gutenberg_corpus
+    tmp_dir = tmp_path_factory.mktemp("gutenberg")
+
+    in_memory_client = QdrantClient(":memory:")
+    original_client = qdrant_store._client
+
+    qdrant_store._client = in_memory_client
+    original_extracted = config.EXTRACTED_DIR
+    config.EXTRACTED_DIR = str(tmp_dir / "extracted")
+    ingest.EXTRACTED_DIR = config.EXTRACTED_DIR
+
+    try:
+        ensure_collection(GUTENBERG_COLLECTION, in_memory_client)
+
+        chunks = chunk_text(text, page_boundaries, page_nums)
+        assert len(chunks) > 0, "Expected at least one chunk from Gutenberg corpus"
+
+        texts = [c["text"] for c in chunks]
+        vectors = embed(texts)
+
+        points = []
+        for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
+            points.append(
+                PointStruct(
+                    id=i + 1,
+                    vector=vector,
+                    payload={
+                        "text": chunk["text"],
+                        "book": "gutenberg_prince",
+                        "chapter": f"Chapter {chunk['start_page']}",
+                        "start_page": chunk["start_page"],
+                        "end_page": chunk["end_page"],
+                    },
+                )
+            )
+
+        in_memory_client.upsert(collection_name=GUTENBERG_COLLECTION, points=points)
+    except Exception:
+        qdrant_store._client = original_client
+        config.EXTRACTED_DIR = original_extracted
+        ingest.EXTRACTED_DIR = original_extracted
+        raise
+
+    yield in_memory_client, GUTENBERG_COLLECTION, chunks
+
+    qdrant_store._client = original_client
+    config.EXTRACTED_DIR = original_extracted
+    ingest.EXTRACTED_DIR = original_extracted
+    try:
+        in_memory_client.delete_collection(collection_name=GUTENBERG_COLLECTION)
     except Exception:
         pass
