@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.chapter_detection import ChapterDetector
 from src.chunking import chunk_text
 from src.config import BOOKS_DIR, EXTRACTED_DIR
-from src.utils import collection_name
 from src.embeddings import embed
 from src.extraction import extract_pdf, get_full_text_with_page_info
 from src.qdrant_store import (
@@ -19,6 +18,7 @@ from src.qdrant_store import (
     get_qdrant_client,
     list_collections,
 )
+from src.utils import collection_name
 
 
 def process_book(pdf_path: str) -> dict:
@@ -52,13 +52,15 @@ def process_book(pdf_path: str) -> dict:
         result_chunks = []
         for chunk in chunks:
             chapter = detector.get_chapter_for_page(chunk["start_page"])
-            result_chunks.append({
-                "text": chunk["text"],
-                "book": book_name,
-                "chapter": chapter or "unknown",
-                "start_page": chunk["start_page"],
-                "end_page": chunk["end_page"],
-            })
+            result_chunks.append(
+                {
+                    "text": chunk["text"],
+                    "book": book_name,
+                    "chapter": chapter or "unknown",
+                    "start_page": chunk["start_page"],
+                    "end_page": chunk["end_page"],
+                }
+            )
 
     extracted_path = os.path.join(EXTRACTED_DIR, f"{book_name}.txt")
     os.makedirs(EXTRACTED_DIR, exist_ok=True)
@@ -107,21 +109,23 @@ def index_book(pdf_path: str, reindex: bool = False):
     print(f"  Storing in Qdrant collection '{coll}'...")
     points = []
     for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
-        points.append({
-            "id": i + 1,
-            "vector": vector,
-            "payload": {
-                "text": chunk["text"],
-                "book": chunk["book"],
-                "chapter": chunk["chapter"],
-                "start_page": chunk["start_page"],
-                "end_page": chunk["end_page"],
-            },
-        })
+        points.append(
+            {
+                "id": i + 1,
+                "vector": vector,
+                "payload": {
+                    "text": chunk["text"],
+                    "book": chunk["book"],
+                    "chapter": chunk["chapter"],
+                    "start_page": chunk["start_page"],
+                    "end_page": chunk["end_page"],
+                },
+            }
+        )
 
     batch_size = 500
     for start in range(0, len(points), batch_size):
-        batch = points[start:start + batch_size]
+        batch = points[start : start + batch_size]
         qdrant.upsert(
             collection_name=coll,
             points=batch,
@@ -220,7 +224,7 @@ def list_books():
     print("Books in knowledge base:")
     for c in sorted(collections):
         count_result = qdrant.count(collection_name=c, exact=True)
-        total = count_result.count if hasattr(count_result, 'count') else 0
+        total = count_result.count if hasattr(count_result, "count") else 0
         print(f"  - {c} ({total} chunks)")
 
 
@@ -228,8 +232,12 @@ def main():
     parser = argparse.ArgumentParser(description="PDF-RAG ingestion pipeline")
     parser.add_argument("--reindex", type=str, help="Re-index a specific book by name")
     parser.add_argument("--book", type=str, help="Index a specific book by name")
-    parser.add_argument("--delete", type=str, help="Delete a book from the knowledge base")
-    parser.add_argument("--list", action="store_true", help="List all books in the knowledge base")
+    parser.add_argument(
+        "--delete", type=str, help="Delete a book from the knowledge base"
+    )
+    parser.add_argument(
+        "--list", action="store_true", help="List all books in the knowledge base"
+    )
     args = parser.parse_args()
 
     if args.list:

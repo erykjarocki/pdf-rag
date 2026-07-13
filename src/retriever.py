@@ -1,7 +1,7 @@
 from src.config import TOP_K
-from src.utils import collection_name
 from src.embeddings import embed_query
 from src.qdrant_store import get_qdrant_client, list_collections
+from src.utils import collection_name
 
 
 def search_book(query: str, top_k: int = TOP_K, book: str | None = None) -> list[dict]:
