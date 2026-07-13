@@ -66,14 +66,16 @@ def _format_results(points) -> list[dict]:
     fragments = []
     for hit in points:
         p = hit.payload
-        fragments.append({
-            "text": p["text"],
-            "book": p["book"],
-            "chapter": p.get("chapter", ""),
-            "start_page": p.get("start_page", ""),
-            "end_page": p.get("end_page", ""),
-            "score": round(hit.score, 4),
-        })
+        fragments.append(
+            {
+                "text": p["text"],
+                "book": p["book"],
+                "chapter": p.get("chapter", ""),
+                "start_page": p.get("start_page", ""),
+                "end_page": p.get("end_page", ""),
+                "score": round(hit.score, 4),
+            }
+        )
     return fragments
 
 

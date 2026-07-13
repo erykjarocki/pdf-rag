@@ -90,13 +90,7 @@ python src/ingest.py  # re-index all
 
 **Cause:** venv was moved or Python was upgraded.
 
-**Fix:**
-```bash
-rm -rf venv
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+**Fix:** Run `make setup` — it recreates the venv and reinstalls everything.
 
 ---
 
