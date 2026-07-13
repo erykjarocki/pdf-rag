@@ -153,7 +153,12 @@ class TestFontMapBuilder:
     def test_no_headings_returns_empty(self):
         """Pages with only body text produce no entries."""
         body_spans = [
-            {"size": 11.0, "flags": 0, "text": "Just regular text.", "bbox": (50, 50, 200, 65)},
+            {
+                "size": 11.0,
+                "flags": 0,
+                "text": "Just regular text.",
+                "bbox": (50, 50, 200, 65),
+            },
         ]
         doc = self._make_mock_doc([body_spans])
         result = _build_font_map(doc)
@@ -227,11 +232,13 @@ class TestRegexFallback:
 
     def test_chapter_inheritance(self):
         """Pages without headings don't appear in result (no inheritance)."""
-        doc = self._make_mock_doc([
-            "Chapter 1: Start\nBody.",
-            "No heading here.",
-            "Chapter 2: Next\nBody.",
-        ])
+        doc = self._make_mock_doc(
+            [
+                "Chapter 1: Start\nBody.",
+                "No heading here.",
+                "Chapter 2: Next\nBody.",
+            ]
+        )
         result = _regex_fallback(doc)
         assert 1 in result
         assert 2 not in result  # no heading on page 2
@@ -265,12 +272,10 @@ class TestChapterDetectorOrchestration:
             for text in page_texts:
                 page = MagicMock()
                 # Use default_value pattern to avoid closure issues
-                page.get_text.side_effect = (
-                    lambda fmt, _text=text, **kw: (
-                        {"blocks": [{"type": 0, "lines": [{"spans": []}]}]}
-                        if fmt == "dict"
-                        else _text
-                    )
+                page.get_text.side_effect = lambda fmt, _text=text, **kw: (
+                    {"blocks": [{"type": 0, "lines": [{"spans": []}]}]}
+                    if fmt == "dict"
+                    else _text
                 )
                 pages.append(page)
             doc.load_page = lambda idx: pages[idx]
@@ -280,12 +285,10 @@ class TestChapterDetectorOrchestration:
             pages = []
             for spans in pages_spans:
                 page = MagicMock()
-                page.get_text.side_effect = (
-                    lambda fmt, _spans=spans, **kw: (
-                        {"blocks": [{"type": 0, "lines": [{"spans": _spans}]}]}
-                        if fmt == "dict"
-                        else "No heading"
-                    )
+                page.get_text.side_effect = lambda fmt, _spans=spans, **kw: (
+                    {"blocks": [{"type": 0, "lines": [{"spans": _spans}]}]}
+                    if fmt == "dict"
+                    else "No heading"
                 )
                 pages.append(page)
             doc.load_page = lambda idx: pages[idx]
@@ -372,4 +375,6 @@ class TestChapterDetectorOrchestration:
             page_texts=["text"] * 5,
         )
         with ChapterDetector("test.pdf") as detector:
-            assert detector.get_chapter_for_page(3) == "Part I > Chapter 1 > Section 1.1"
+            assert (
+                detector.get_chapter_for_page(3) == "Part I > Chapter 1 > Section 1.1"
+            )
