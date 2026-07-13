@@ -36,4 +36,5 @@ make mcp                # run MCP server
 | [Architecture](architecture.md) | System overview and data flow |
 | [Configuration](configuration.md) | All config options and how to change them |
 | [API Reference](api-reference.md) | REST API and MCP tools |
+| [Testing](testing.md) | Test strategy, structure, and how to run tests |
 | [Troubleshooting](troubleshooting.md) | Common issues and fixes |

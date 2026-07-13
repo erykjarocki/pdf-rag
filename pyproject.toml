@@ -17,6 +17,9 @@ dev = [
     "ruff",
     "mkdocs",
     "mkdocs-material",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
 ]
 
 [project.scripts]
@@ -37,3 +40,12 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unit: fast, no I/O (run every save)",
+    "integration: uses stubbed infrastructure (run on PR)",
+    "eval: slow, uses real models (run nightly)",
+]
+addopts = "-v --tb=short"

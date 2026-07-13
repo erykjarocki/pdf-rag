@@ -1,9 +1,10 @@
-.PHONY: setup install ingest serve mcp qdrant start stop clean lint fmt docs docs-serve
+.PHONY: setup install ingest serve mcp qdrant start stop clean lint fmt docs docs-serve test test-unit test-integration
 
 PY = venv/bin/python
 PIP = venv/bin/pip
 MKDOCS = venv/bin/mkdocs
 RUFF = venv/bin/ruff
+PYTEST = venv/bin/pytest
 
 # Setup (first time)
 setup:
@@ -42,6 +43,15 @@ lint:
 
 fmt:
 	$(RUFF) format src/ $(ARGS)
+
+test:
+	$(PYTEST) tests/ -v
+
+test-unit:
+	$(PYTEST) tests/unit/ -v -m unit
+
+test-integration:
+	$(PYTEST) tests/integration/ -v -m integration
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true

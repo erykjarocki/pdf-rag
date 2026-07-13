@@ -19,6 +19,7 @@ nav:
   - Architecture: architecture.md
   - Configuration: configuration.md
   - API Reference: api-reference.md
+  - Testing: testing.md
   - Improvements: improvements.md
   - Troubleshooting: troubleshooting.md
 
