@@ -57,8 +57,7 @@ def pytest_sessionfinish(session, exitstatus):
             relevant = frag["is_relevant"]
             mark = "  \u2713 RELEVANT" if relevant else ""
             terminal.write(
-                f'  [{frag["rank"]}] score={frag["score"]:.2f}'
-                f'  page={frag["start_page"]}{mark}\n'
+                f"  [{frag['rank']}] score={frag['score']:.2f}  page={frag['start_page']}{mark}\n"
             )
             for line in frag["text"].split("\n"):
                 terminal.write(f"      {line}\n")
@@ -106,18 +105,18 @@ def pytest_sessionfinish(session, exitstatus):
 
     # Two-stage comparison if both stages present
     if rerank_results:
-        m_before = _compute_metrics(results) if results else {
-            "recall_at_2": 0, "precision_at_2": 0, "mrr": 0
-        }
+        m_before = (
+            _compute_metrics(results)
+            if results
+            else {"recall_at_2": 0, "precision_at_2": 0, "mrr": 0}
+        )
         m_after = _compute_metrics(rerank_results)
         terminal.write("\n")
         terminal.write("=" * 70 + "\n")
         terminal.write("PIPELINE COMPARISON: Bi-Encoder → Cross-Encoder Reranking\n")
         terminal.write("=" * 70 + "\n")
-        terminal.write(
-            f"  {'Metric':<15} {'Before':>10} {'After':>10} {'Delta':>10}\n"
-        )
-        terminal.write(f"  {'-'*45}\n")
+        terminal.write(f"  {'Metric':<15} {'Before':>10} {'After':>10} {'Delta':>10}\n")
+        terminal.write(f"  {'-' * 45}\n")
         for key, label in [
             ("recall_at_2", "Recall@2"),
             ("precision_at_2", "Precision@2"),
@@ -145,6 +144,10 @@ def pytest_sessionfinish(session, exitstatus):
             "before": _compute_metrics(results) if results else {},
             "after": _compute_metrics(rerank_results),
         }
+
+    rerank_detail = getattr(session, "rerank_detail", [])
+    if rerank_detail:
+        report["rerank_detail"] = rerank_detail
 
     REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False))
 
@@ -251,6 +254,72 @@ def collect_rerank_result(session, query, results, relevant_pages, k=2):
     )
 
     return recall, precision, rr
+
+
+def collect_rerank_detail(
+    session, query, bi_results, reranked_results, rank_changes, relevant_pages
+):
+    """Store per-query before/after reranking detail for the HTML report.
+
+    Args:
+        session: Pytest session object.
+        query: The query string.
+        bi_results: Bi-encoder results (top 8, from rerank=False).
+        reranked_results: Cross-encoder results (top 8, from rerank=True).
+        rank_changes: List of rank change dicts from trace, or None.
+        relevant_pages: List of relevant page numbers.
+    """
+    if not hasattr(session, "rerank_detail"):
+        session.rerank_detail = []
+
+    if any(item["query"] == query for item in session.rerank_detail):
+        return
+
+    def _build_frag(r, rank, is_ce=False):
+        return {
+            "rank": rank,
+            "page": r.get("start_page", "?"),
+            "chapter": r.get("chapter", ""),
+            "bi_score": round(r["score"], 4),
+            "ce_score": round(r.get("rerank_score", 0), 4) if is_ce else None,
+            "text_preview": r["text"][:200] + ("…" if len(r["text"]) > 200 else ""),
+            "is_relevant": r.get("start_page", "?") in relevant_pages,
+        }
+
+    bi_top8 = [_build_frag(r, i + 1) for i, r in enumerate(bi_results[:8])]
+    reranked_top8 = [_build_frag(r, i + 1, is_ce=True) for i, r in enumerate(reranked_results[:8])]
+
+    # Build a lookup of bi_score by page for rank_changes augmentation
+    bi_by_page = {}
+    for r in bi_results:
+        p = r.get("start_page", "?")
+        if p not in bi_by_page:
+            bi_by_page[p] = round(r["score"], 4)
+
+    clean_changes = []
+    if rank_changes:
+        for rc in rank_changes:
+            clean_changes.append(
+                {
+                    "page": rc["page"],
+                    "chapter": rc.get("chapter", ""),
+                    "before": rc["before"],
+                    "after": rc["after"],
+                    "delta": rc["delta"],
+                    "bi_score": round(rc["bi_score"], 4),
+                    "ce_score": round(rc["ce_score"], 4),
+                }
+            )
+
+    session.rerank_detail.append(
+        {
+            "query": query,
+            "relevant_pages": relevant_pages,
+            "bi_encoder_top8": bi_top8,
+            "reranked_top8": reranked_top8,
+            "rank_changes": clean_changes,
+        }
+    )
 
 
 def _precision_at_k(results, relevant_pages, k):
@@ -391,17 +460,17 @@ def tiny_pdf(tmp_path_factory):
             "attraction drawing visitors from around the world. Each tent "
             "is decorated in traditional Bavarian style and features its "
             "own brewery, with the Hofbraeuhaus tent being the largest "
-             "and most famous, seating over ten thousand people.\n\n"
-             "Cologne Cathedral, a Roman Catholic church on the banks of the "
-             "Rhine River, took over six hundred years to complete. "
-             "Construction began in 1248 and was not finished until 1880, "
-             "making it one of the longest construction projects in history. "
-             "The cathedral houses the Shrine of the Three Kings, a gold "
-             "reliquary said to contain the remains of the Biblical Magi, "
-             "and its twin spires rising 157 meters made it the tallest "
-             "twin-spired building in the world upon completion. During World "
-             "War Two, the cathedral survived fourteen aerial hits but "
-             "remained standing amidst the rubble of the surrounding city."
+            "and most famous, seating over ten thousand people.\n\n"
+            "Cologne Cathedral, a Roman Catholic church on the banks of the "
+            "Rhine River, took over six hundred years to complete. "
+            "Construction began in 1248 and was not finished until 1880, "
+            "making it one of the longest construction projects in history. "
+            "The cathedral houses the Shrine of the Three Kings, a gold "
+            "reliquary said to contain the remains of the Biblical Magi, "
+            "and its twin spires rising 157 meters made it the tallest "
+            "twin-spired building in the world upon completion. During World "
+            "War Two, the cathedral survived fourteen aerial hits but "
+            "remained standing amidst the rubble of the surrounding city."
         ),
         (
             "Chapter 3: Japan\n\n"
@@ -541,6 +610,7 @@ def indexed_qdrant(tiny_pdf, tmp_path_factory):
 # Gutenberg corpus fixtures (real content, no PDF)
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def gutenberg_corpus():
     """Fetch The Prince from Gutenberg, split into chapters.
@@ -549,6 +619,7 @@ def gutenberg_corpus():
     Cached via lru_cache so multiple fixtures share one fetch.
     """
     from tests.eval.gutenberg_corpus import fetch_and_split
+
     return fetch_and_split()
 
 

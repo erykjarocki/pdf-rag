@@ -109,48 +109,12 @@ jobs:
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
       - run: |
           source .venv/bin/activate
-          pytest tests/eval/ -v -m eval
+          pytest tests/eval/ -v -m "eval or rerank"
       - name: Compare to baseline
         if: always()
         run: |
           source .venv/bin/activate
           python tests/eval/compare_to_baseline.py || echo "REGRESSION_DETECTED=true" >> $GITHUB_ENV
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: eval-report
-          path: |
-            tests/eval/eval-report.html
-            tests/eval/eval-report.json
-            tests/eval/comparison.md
-      - uses: actions/upload-pages-artifact@v3
-        if: always()
-        with:
-          path: tests/eval
-          name: github-pages
-      - name: Comment on PR
-        if: github.event_name == 'pull_request' && always()
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          header: eval-report
-          path: tests/eval/comparison.md
-
-  test-rerank:
-    needs: [install]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        id: setup-python
-        with:
-          python-version: "3.12"
-      - uses: actions/cache@v5
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
-      - run: |
-          source .venv/bin/activate
-          pytest tests/eval/ -v -m rerank
       - name: Generate rerank comparison
         if: always()
         run: |
@@ -175,12 +139,24 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rerank-report
+          name: eval-report
           path: |
             tests/eval/eval-report.html
             tests/eval/eval-report.json
+            tests/eval/comparison.md
             tests/eval/rerank-comparison.md
-      - name: Comment on PR
+      - uses: actions/upload-pages-artifact@v3
+        if: always()
+        with:
+          path: tests/eval
+          name: github-pages
+      - name: Comment on PR (eval)
+        if: github.event_name == 'pull_request' && always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: eval-report
+          path: tests/eval/comparison.md
+      - name: Comment on PR (rerank)
         if: github.event_name == 'pull_request' && always()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
@@ -188,7 +164,7 @@ jobs:
           path: tests/eval/rerank-comparison.md
 
   deploy-report:
-    needs: [test-eval, test-rerank]
+    needs: [test-eval]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:

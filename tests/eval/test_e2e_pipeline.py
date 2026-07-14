@@ -34,9 +34,7 @@ class TestFullPipelineIndexing:
 
     def test_vectors_match_chunk_count(self, indexed_qdrant):
         client, coll_name, chunks = indexed_qdrant
-        result, _ = client.scroll(
-            collection_name=coll_name, limit=100, with_vectors=True
-        )
+        result, _ = client.scroll(collection_name=coll_name, limit=100, with_vectors=True)
         assert len(result) == len(chunks)
         for point in result:
             assert len(point.vector) == 384
@@ -77,9 +75,7 @@ class TestRetrievalQuality:
 
         top = results[0]
         text_lower = top["text"].lower()
-        assert (
-            "louvre" in text_lower or "paris" in text_lower or "museum" in text_lower
-        )
+        assert "louvre" in text_lower or "paris" in text_lower or "museum" in text_lower
 
     def test_wall_query_prefers_germany(self, indexed_qdrant):
         results = search_book("the Berlin Wall and Cold War", book="tiny_sample")
@@ -87,11 +83,7 @@ class TestRetrievalQuality:
 
         top = results[0]
         text_lower = top["text"].lower()
-        assert (
-            "berlin wall" in text_lower
-            or "cold war" in text_lower
-            or "berlin" in text_lower
-        )
+        assert "berlin wall" in text_lower or "cold war" in text_lower or "berlin" in text_lower
 
     def test_fuji_query_prefers_japan(self, indexed_qdrant):
         results = search_book("Mount Fuji and cherry blossoms", book="tiny_sample")
@@ -204,9 +196,7 @@ class TestRerankRetrievalQuality:
     """
 
     def test_paris_query_reranked(self, indexed_qdrant):
-        results = search_book(
-            "What is the capital of France?", book="tiny_sample", rerank=True
-        )
+        results = search_book("What is the capital of France?", book="tiny_sample", rerank=True)
         assert len(results) > 0
 
         top = results[0]
@@ -224,9 +214,7 @@ class TestRerankRetrievalQuality:
         assert "rerank_score" in top
 
     def test_tokyo_query_reranked(self, indexed_qdrant):
-        results = search_book(
-            "Shibuya Crossing in Tokyo Japan", book="tiny_sample", rerank=True
-        )
+        results = search_book("Shibuya Crossing in Tokyo Japan", book="tiny_sample", rerank=True)
         assert len(results) > 0
 
         top = results[0]
@@ -240,28 +228,18 @@ class TestRerankRetrievalQuality:
 
         top = results[0]
         text_lower = top["text"].lower()
-        assert (
-            "louvre" in text_lower or "paris" in text_lower or "museum" in text_lower
-        )
+        assert "louvre" in text_lower or "paris" in text_lower or "museum" in text_lower
 
     def test_wall_query_reranked(self, indexed_qdrant):
-        results = search_book(
-            "the Berlin Wall and Cold War", book="tiny_sample", rerank=True
-        )
+        results = search_book("the Berlin Wall and Cold War", book="tiny_sample", rerank=True)
         assert len(results) > 0
 
         top = results[0]
         text_lower = top["text"].lower()
-        assert (
-            "berlin wall" in text_lower
-            or "cold war" in text_lower
-            or "berlin" in text_lower
-        )
+        assert "berlin wall" in text_lower or "cold war" in text_lower or "berlin" in text_lower
 
     def test_fuji_query_reranked(self, indexed_qdrant):
-        results = search_book(
-            "Mount Fuji and cherry blossoms", book="tiny_sample", rerank=True
-        )
+        results = search_book("Mount Fuji and cherry blossoms", book="tiny_sample", rerank=True)
         assert len(results) > 0
 
         top = results[0]
@@ -394,11 +372,17 @@ class TestPipelineComparison:
     Stage 2: Cross-encoder re-ranks candidates (final metrics)
 
     Both stages are stored on the session so the report shows a single
-    comparison table with Before → After → Delta.
+    comparison table with Before → After → Delta, plus per-query
+    reranking detail showing how items were reordered.
     """
 
     def test_pipeline_comparison(self, request, indexed_qdrant):
-        from tests.eval.conftest import collect_eval_result, collect_rerank_result
+        from src.trace import SearchResult
+        from tests.eval.conftest import (
+            collect_eval_result,
+            collect_rerank_detail,
+            collect_rerank_result,
+        )
 
         labels = _load_labels()
         recalls_before, recalls_after = [], []
@@ -418,14 +402,34 @@ class TestPipelineComparison:
             precisions_before.append(p1)
             rrs_before.append(rr1)
 
-            # Stage 2: bi-encoder + cross-encoder
-            results_after = search_book(query, book="tiny_sample", rerank=True)
+            # Stage 2: bi-encoder + cross-encoder (with trace for rank changes)
+            search_result = search_book(query, book="tiny_sample", rerank=True, trace=True)
+            assert isinstance(search_result, SearchResult)
+            results_after = search_result.fragments
+
+            # Extract rank_changes from trace
+            rank_changes = None
+            for stage in search_result.trace.stages:
+                if stage.name == "rerank":
+                    rank_changes = stage.details.get("rank_changes")
+                    break
+
             r2, p2, rr2 = collect_eval_result(
                 request.session, f"{query} (pipeline)", results_after, relevant, k=2
             )
             recalls_after.append(r2)
             precisions_after.append(p2)
             rrs_after.append(rr2)
+
+            # Store per-query reranking detail for the HTML report
+            collect_rerank_detail(
+                request.session,
+                query,
+                results_before,
+                results_after,
+                rank_changes,
+                relevant,
+            )
 
         # Compute averages
         def avg(xs):
@@ -448,7 +452,7 @@ class TestPipelineComparison:
         print("TWO-STAGE PIPELINE COMPARISON")
         print("=" * 60)
         print(f"  {'Metric':<15} {'Bi-Encoder':>12} {'+Rerank':>12} {'Delta':>10}")
-        print(f"  {'-'*49}")
+        print(f"  {'-' * 49}")
         for key, label in [("recall", "Recall@2"), ("precision", "Precision@2"), ("mrr", "MRR")]:
             b, a = m_before[key], m_after[key]
             d = a - b

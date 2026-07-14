@@ -87,6 +87,42 @@ h1 { border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
   font-size: 12px; line-height: 1.5; white-space: pre-wrap; color: #333;
 }
 .relevant-pages { font-size: 13px; color: #555; }
+.rerank-detail { margin: 16px 0; }
+.rerank-detail-header {
+  padding: 10px 16px; background: #f0f7ff; border: 1px solid #b8daff;
+  border-radius: 8px 8px 0 0; font-weight: 600; font-size: 14px;
+  color: #004085;
+}
+.rerank-columns {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+  border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+.rerank-col { padding: 0; }
+.rerank-col-header {
+  padding: 8px 12px; font-weight: 600; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.rerank-col:first-child .rerank-col-header { background: #e9ecef; color: #495057; }
+.rerank-col:last-child .rerank-col-header { background: #d4edda; color: #155724; }
+.rerank-item {
+  padding: 6px 12px; border-top: 1px solid #f0f0f0;
+  font-size: 12px; display: flex; align-items: baseline; gap: 8px;
+}
+.rerank-item:first-of-type { border-top: none; }
+.rerank-rank { font-weight: 700; min-width: 18px; color: #333; }
+.rerank-page { color: #555; min-width: 28px; }
+.rerank-score { color: #666; font-family: monospace; font-size: 11px; }
+.rerank-arrow { font-weight: 700; min-width: 22px; text-align: center; }
+.rerank-arrow.up { color: #28a745; }
+.rerank-arrow.down { color: #dc3545; }
+.rerank-arrow.flat { color: #6c757d; }
+.rerank-text {
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: #555; font-family: monospace; font-size: 11px;
+}
+.rerank-item.relevant-row { background: #f0fff0; }
+.rerank-item.irrelevant-row { background: #fff5f5; }
 """
 
 
@@ -145,8 +181,7 @@ def _pipeline_comparison_html(pipeline):
             improvements.append(f"{label} {d:.0%}")
 
     summary_text = (
-        "Reranking improves retrieval precision "
-        "by rescoring candidates with a cross-encoder."
+        "Reranking improves retrieval precision by rescoring candidates with a cross-encoder."
     )
     if improvements:
         summary_text = f"Improvements: {', '.join(improvements)}."
@@ -187,13 +222,93 @@ def _pipeline_comparison_html(pipeline):
             f'<td class="{delta_cls}">{delta_text}</td></tr>\n'
         )
 
-    html += (
-        "    </tbody>\n"
-        "  </table>\n"
-        f'  <div class="summary">{summary_text}</div>\n'
-        "</div>\n\n"
-    )
+    html += f'    </tbody>\n  </table>\n  <div class="summary">{summary_text}</div>\n</div>\n\n'
     return html
+
+
+def _rerank_detail_html(detail):
+    """Build the per-query reranking detail section (before/after two-column view)."""
+    if not detail:
+        return ""
+
+    bi_top8 = detail.get("bi_encoder_top8", [])
+    reranked_top8 = detail.get("reranked_top8", [])
+    rank_changes = detail.get("rank_changes", [])
+
+    if not bi_top8 and not reranked_top8:
+        return ""
+
+    # Build lookup: page → rank_change info
+    rc_by_page = {}
+    for rc in rank_changes:
+        rc_by_page[rc["page"]] = rc
+
+    html = (
+        '<div class="rerank-detail">\n'
+        '  <div class="rerank-detail-header">'
+        "Reranking Detail — Bi-Encoder top 8 → Cross-Encoder top 8"
+        "</div>\n"
+        '  <div class="rerank-columns">\n'
+    )
+
+    # Left column: Before (bi-encoder)
+    html += '    <div class="rerank-col">\n'
+    html += '      <div class="rerank-col-header">Before (Bi-Encoder)</div>\n'
+    for frag in bi_top8:
+        cls = "relevant-row" if frag["is_relevant"] else "irrelevant-row"
+        tag_cls = "relevant-tag" if frag["is_relevant"] else "irrelevant-tag"
+        tag_text = "REL" if frag["is_relevant"] else "NOT REL"
+        html += (
+            f'      <div class="rerank-item {cls}">'
+            f'<span class="rerank-rank">#{frag["rank"]}</span>'
+            f'<span class="rerank-page">p.{frag["page"]}</span>'
+            f'<span class="rerank-score">{frag["bi_score"]:.4f}</span>'
+            f'<span class="tag {tag_cls}">{tag_text}</span>'
+            f'<span class="rerank-text">{_escape_html(frag["text_preview"])}</span>'
+            f"</div>\n"
+        )
+    if not bi_top8:
+        html += '      <div class="rerank-item" style="color:#999">No data</div>\n'
+    html += "    </div>\n"
+
+    # Right column: After (cross-encoder)
+    html += '    <div class="rerank-col">\n'
+    html += '      <div class="rerank-col-header">After (Cross-Encoder)</div>\n'
+    for frag in reranked_top8:
+        cls = "relevant-row" if frag["is_relevant"] else "irrelevant-row"
+        tag_cls = "relevant-tag" if frag["is_relevant"] else "irrelevant-tag"
+        tag_text = "REL" if frag["is_relevant"] else "NOT REL"
+
+        # Find rank change for this page
+        rc = rc_by_page.get(frag["page"])
+        if rc and rc["delta"] > 0:
+            arrow = f'<span class="rerank-arrow up">↑{rc["delta"]}</span>'
+        elif rc and rc["delta"] < 0:
+            arrow = f'<span class="rerank-arrow down">↓{abs(rc["delta"])}</span>'
+        else:
+            arrow = '<span class="rerank-arrow flat">—</span>'
+
+        html += (
+            f'      <div class="rerank-item {cls}">'
+            f'<span class="rerank-rank">#{frag["rank"]}</span>'
+            f"{arrow}"
+            f'<span class="rerank-page">p.{frag["page"]}</span>'
+            f'<span class="rerank-score">bi:{frag["bi_score"]:.4f} ce:{frag["ce_score"]:.4f}</span>'
+            f'<span class="tag {tag_cls}">{tag_text}</span>'
+            f'<span class="rerank-text">{_escape_html(frag["text_preview"])}</span>'
+            f"</div>\n"
+        )
+    if not reranked_top8:
+        html += '      <div class="rerank-item" style="color:#999">No data</div>\n'
+    html += "    </div>\n"
+
+    html += "  </div>\n</div>\n\n"
+    return html
+
+
+def _escape_html(text):
+    """Escape HTML special characters."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def generate():
@@ -205,6 +320,8 @@ def generate():
     metrics = data["metrics"]
     queries = data["queries"]
     baseline = _load_baseline()
+    rerank_detail_list = data.get("rerank_detail", [])
+    rerank_detail_by_query = {d["query"]: d for d in rerank_detail_list}
 
     def metric_class(key, threshold):
         val = metrics[key]
@@ -239,15 +356,15 @@ def generate():
         '<div class="metrics">\n'
         f'  <div class="metric {recall_cls}">\n'
         f'    <div class="value">{metrics["recall_at_2"]:.2f}</div>\n'
-        f'    {_delta_html(metrics["recall_at_2"], bl_recall, "recall_at_2")}\n'
+        f"    {_delta_html(metrics['recall_at_2'], bl_recall, 'recall_at_2')}\n"
         '    <div class="label">Recall@2</div>\n  </div>\n'
         f'  <div class="metric {precision_cls}">\n'
         f'    <div class="value">{metrics["precision_at_2"]:.2f}</div>\n'
-        f'    {_delta_html(metrics["precision_at_2"], bl_precision, "precision_at_2")}\n'
+        f"    {_delta_html(metrics['precision_at_2'], bl_precision, 'precision_at_2')}\n"
         '    <div class="label">Precision@2</div>\n  </div>\n'
         f'  <div class="metric {mrr_cls}">\n'
         f'    <div class="value">{metrics["mrr"]:.2f}</div>\n'
-        f'    {_delta_html(metrics["mrr"], bl_mrr, "mrr")}\n'
+        f"    {_delta_html(metrics['mrr'], bl_mrr, 'mrr')}\n"
         '    <div class="label">MRR</div>\n  </div>\n'
         '  <div class="metric pass">\n'
         f'    <div class="value">{len(queries)}</div>\n'
@@ -263,10 +380,10 @@ def generate():
         html += (
             '<div class="query-card">\n'
             f'  <div class="query-header">&ldquo;{q["query"]}&rdquo;</div>\n'
-            "  <div class=\"query-meta\">"
+            '  <div class="query-meta">'
             f"Relevant pages: {relevant_pages} &nbsp;|&nbsp; "
             f"Recall@2: {recall:.2f} &nbsp;|&nbsp; "
-            f'Precision@2: {precision:.2f}</div>\n'
+            f"Precision@2: {precision:.2f}</div>\n"
         )
 
         for frag in q["retrieved_fragments"]:
@@ -291,6 +408,10 @@ def generate():
                 f'    <div class="text">{text}</div>\n'
                 "  </div>\n"
             )
+
+        # Add per-query reranking detail if available
+        detail = rerank_detail_by_query.get(q["query"])
+        html += _rerank_detail_html(detail)
 
         html += "</div>\n"
 
