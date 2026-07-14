@@ -110,4 +110,4 @@ class TestLoadConfigFromFile:
 @pytest.mark.unit
 class TestConfigFileConstants:
     def test_config_file_path(self):
-        assert CONFIG_FILE == Path.home() / ".config" / "pdf-rag" / "config.json"
+        assert CONFIG_FILE == Path.home() / ".config" / "doc-rag" / "config.json"

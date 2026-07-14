@@ -22,13 +22,13 @@ setup:
 	fi
 	@echo ""
 	@echo "=== Config ==="
-	@echo "Config file: ~/.config/pdf-rag/config.json"
+	@echo "Config file: ~/.config/doc-rag/config.json"
 	@echo "Edit this file to change model, ports, chunk size, etc."
 	@echo ""
 	@echo "=== OpenCode Integration ==="
 	@echo "Add this to ~/.config/opencode/opencode.json:"
 	@echo ""
-	@echo '  "pdf-rag": {'
+	@echo '  "doc-rag": {'
 	@echo '    "type": "local",'
 	@echo '    "command": ["$(PWD)/venv/bin/python", "-m", "src.mcp_server"],'
 	@echo '    "cwd": "$(PWD)",'

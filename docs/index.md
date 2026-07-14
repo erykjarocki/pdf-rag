@@ -1,4 +1,4 @@
-# PDF-RAG
+# DOC-RAG
 
 Local RAG system for PDF documents — chat with your books, articles, or any PDF via AI.
 

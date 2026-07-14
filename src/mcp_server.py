@@ -9,7 +9,7 @@ from fastmcp import FastMCP
 from src.qdrant_store import list_collections
 from src.retriever import format_fragments_for_prompt, search_book
 
-mcp = FastMCP("pdf-rag")
+mcp = FastMCP("doc-rag")
 
 
 @mcp.tool()

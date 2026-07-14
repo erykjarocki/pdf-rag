@@ -1,6 +1,6 @@
-site_name: PDF-RAG
+site_name: DOC-RAG
 site_description: Local RAG system for PDF documents
-repo_url: https://github.com/erykjarocki/pdf-rag
+repo_url: https://github.com/erykjarocki/doc-rag
 edit_uri: edit/main/docs/
 
 theme:

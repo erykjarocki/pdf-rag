@@ -231,7 +231,7 @@ def list_books():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="PDF-RAG ingestion pipeline")
+    parser = argparse.ArgumentParser(description="DOC-RAG ingestion pipeline")
     parser.add_argument("file", nargs="?", help="Path to a document file to index")
     parser.add_argument("--reindex", action="store_true", help="Re-index the given file")
     parser.add_argument("--folder", type=str, help="Index all supported files in a directory")

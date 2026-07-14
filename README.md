@@ -1,4 +1,4 @@
-# PDF-RAG
+# DOC-RAG
 
 Local RAG system for documents — chat with PDFs, text files, markdown, source code, or any document via AI.
 
@@ -31,8 +31,8 @@ LLM answers based on found fragments
 
 ```bash
 # Clone
-git clone git@github.com:erykjarocki/pdf-rag.git
-cd pdf-rag
+git clone git@github.com:erykjarocki/doc-rag.git
+cd doc-rag
 
 # One command — installs everything, starts Qdrant, prints OpenCode config
 make setup
@@ -88,10 +88,10 @@ make mcp
 `make setup` prints the config automatically. If you need to add it manually:
 
 ```json
-"pdf-rag": {
+"doc-rag": {
   "type": "local",
-  "command": ["/path/to/pdf-rag/venv/bin/python", "-m", "src.mcp_server"],
-  "cwd": "/path/to/pdf-rag",
+  "command": ["/path/to/doc-rag/venv/bin/python", "-m", "src.mcp_server"],
+  "cwd": "/path/to/doc-rag",
   "enabled": true
 }
 ```
@@ -120,7 +120,7 @@ Base URL: `http://localhost:8000`
 ## Project structure
 
 ```
-pdf-rag/
+doc-rag/
 ├── data/
 │   ├── extracted/      # Raw text from documents
 │   ├── chunks/         # Processed chunks

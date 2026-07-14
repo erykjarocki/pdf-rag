@@ -1,4 +1,4 @@
-# PDF-RAG Improvement Roadmap
+# DOC-RAG Improvement Roadmap
 
 ## How to think about RAG
 
@@ -159,7 +159,7 @@ Tool description quality + speed/reliability often matter more than marginal ret
 
 - **Effort:** 1 hr
 - **Problem:** No reproducible deployment, setup depends on local env
-- **Fix:** Dockerfile for pdf-rag, docker-compose with Qdrant service
+- **Fix:** Dockerfile for doc-rag, docker-compose with Qdrant service
 - **Why:** One-command setup, CI/CD ready
 
 ### 17. Upgrade embedding model

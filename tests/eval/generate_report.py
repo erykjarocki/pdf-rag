@@ -118,10 +118,10 @@ def generate():
         '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
         '<meta charset="UTF-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
-        "<title>Eval Report — PDF RAG</title>\n"
+        "<title>Eval Report — DOC RAG</title>\n"
         f"<style>{CSS}</style>\n"
         "</head>\n<body>\n"
-        "<h1>PDF RAG — Eval Report</h1>\n\n"
+        "<h1>DOC RAG — Eval Report</h1>\n\n"
         '<div class="metrics">\n'
         f'  <div class="metric {recall_cls}">\n'
         f'    <div class="value">{metrics["recall_at_2"]:.2f}</div>\n'

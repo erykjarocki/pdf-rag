@@ -1,9 +1,9 @@
-"""CLI for managing pdf-rag configuration.
+"""CLI for managing doc-rag configuration.
 
 Usage:
-    pdf-rag-config init      Create default config at ~/.config/pdf-rag/config.json
-    pdf-rag-config show      Show current effective config
-    pdf-rag-config path      Print config file path
+    doc-rag-config init      Create default config at ~/.config/doc-rag/config.json
+    doc-rag-config show      Show current effective config
+    doc-rag-config path      Print config file path
 """
 
 import argparse
@@ -40,7 +40,7 @@ def cmd_path(_args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="pdf-rag configuration manager")
+    parser = argparse.ArgumentParser(description="doc-rag configuration manager")
     sub = parser.add_subparsers(dest="command")
 
     sub.add_parser("init", help="Create default config file")

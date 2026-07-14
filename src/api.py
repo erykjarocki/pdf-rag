@@ -12,7 +12,7 @@ from src.ingest import index_document, ingest_folder
 from src.qdrant_store import delete_collection, get_qdrant_client, list_collections
 from src.retriever import format_fragments_for_prompt, search_book
 
-app = FastAPI(title="PDF-RAG API", version="2.0.0")
+app = FastAPI(title="DOC-RAG API", version="2.0.0")
 
 
 class QueryRequest(BaseModel):

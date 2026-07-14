@@ -12,7 +12,7 @@
 | File | Action | Purpose |
 |------|--------|---------|
 | `Dockerfile` | CREATE | Python 3.12 slim image, install deps, copy source |
-| `docker-compose.yml` | CREATE | Qdrant + pdf-rag services, one-command start |
+| `docker-compose.yml` | CREATE | Qdrant + doc-rag services, one-command start |
 | `Makefile` | MODIFY | Add docker-up, docker-down targets |
 | `README.md` | MODIFY | Add "Quick Start with Docker" section |
 
@@ -33,7 +33,7 @@ services:
     ports: ["6333:6333"]
     volumes: ["./vector_db/qdrant:/qdrant/storage"]
   
-  pdf-rag:
+  doc-rag:
     build: .
     depends_on: [qdrant]
     volumes:
@@ -46,10 +46,10 @@ services:
 
 **User experience after this phase:**
 ```bash
-git clone https://github.com/erykjarocki/pdf-rag
-cd pdf-rag
+git clone https://github.com/erykjarocki/doc-rag
+cd doc-rag
 docker compose up -d                    # start everything
-docker compose run pdf-rag python src/ingest.py /path/to/doc.pdf  # index
+docker compose run doc-rag python src/ingest.py /path/to/doc.pdf  # index
 ```
 
 ## Phase 2: MCP Config for Every AI Tool

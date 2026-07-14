@@ -2,7 +2,7 @@
 
 ## System Overview
 
-PDF-RAG is a local Retrieval-Augmented Generation system that lets you query documents via semantic search. It supports PDFs, Markdown, source code, and plain text files. It has two pipelines: **ingestion** (document → vector DB) and **retrieval** (query → relevant chunks).
+DOC-RAG is a local Retrieval-Augmented Generation system that lets you query documents via semantic search. It supports PDFs, Markdown, source code, and plain text files. It has two pipelines: **ingestion** (document → vector DB) and **retrieval** (query → relevant chunks).
 
 ## Data Flow
 

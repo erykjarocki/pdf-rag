@@ -47,7 +47,7 @@ python src/ingest.py
 **Fix:**
 ```bash
 # Always run from project root
-cd /path/to/pdf-rag
+cd /path/to/doc-rag
 python src/ingest.py
 ```
 
@@ -77,7 +77,7 @@ python src/ingest.py  # re-index all
 
 ### MCP server won't start
 
-**Symptom:** OpenCode can't connect to pdf-rag tools
+**Symptom:** OpenCode can't connect to doc-rag tools
 
 **Check:**
 1. Virtual environment is activated

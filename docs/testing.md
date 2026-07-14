@@ -1,6 +1,6 @@
 # Testing
 
-PDF-RAG uses a three-layer testing strategy to ensure correctness at every level — from pure utility functions to the full retrieval pipeline.
+DOC-RAG uses a three-layer testing strategy to ensure correctness at every level — from pure utility functions to the full retrieval pipeline.
 
 ## Test Layers
 
@@ -246,7 +246,7 @@ tests/
 
 ## How Mocking Works
 
-The key challenge in testing a RAG system is avoiding expensive/slow operations (embedding model, vector DB). PDF-RAG handles this two ways:
+The key challenge in testing a RAG system is avoiding expensive/slow operations (embedding model, vector DB). DOC-RAG handles this two ways:
 
 1. **In-memory Qdrant** — `QdrantClient(":memory:")` runs the full vector DB in-process. No Docker needed. Tests that need Qdrant get a fresh client via the `qdrant_memory` fixture.
 

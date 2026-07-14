@@ -1,6 +1,6 @@
-"""Configuration loader for pdf-rag.
+"""Configuration loader for doc-rag.
 
-Priority: env vars > ~/.config/pdf-rag/config.json > defaults.
+Priority: env vars > ~/.config/doc-rag/config.json > defaults.
 
 Usage:
     from src.config import settings
@@ -15,7 +15,7 @@ from pathlib import Path
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Config file location
-CONFIG_DIR = Path.home() / ".config" / "pdf-rag"
+CONFIG_DIR = Path.home() / ".config" / "doc-rag"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
 
