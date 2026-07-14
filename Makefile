@@ -1,4 +1,4 @@
-.PHONY: setup install serve mcp qdrant start stop clean lint fmt docs docs-serve test test-unit test-integration
+.PHONY: setup install serve mcp qdrant start stop clean lint fmt docs docs-serve test test-unit test-integration docker-up docker-down
 
 PY = venv/bin/python
 PIP = venv/bin/pip
@@ -30,10 +30,19 @@ setup:
 	@echo '    "enabled": true'
 	@echo '  }'
 	@echo ""
-	@echo "✅ Done! Restart OpenCode, then ask it to ingest documents."
+	@echo "Done! Restart OpenCode, then ask it to ingest documents."
 
 install:
 	$(PIP) install -e ".[dev]"
+
+# Docker Compose
+docker-up:
+	docker compose up -d --build
+	@echo "API running at http://localhost:$${API_PORT:-8000}"
+	@echo "Qdrant running at http://localhost:$${QDRANT_PORT:-6333}"
+
+docker-down:
+	docker compose down
 
 # Qdrant
 qdrant:
