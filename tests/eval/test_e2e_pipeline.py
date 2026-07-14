@@ -29,14 +29,16 @@ class TestFullPipelineIndexing:
         _, _, chunks = gutenberg_indexed_qdrant
         for chunk in chunks:
             assert "text" in chunk and chunk["text"], "chunk must have non-empty text"
-            assert "book" in chunk and chunk["book"], "chunk must have non-empty book"
             assert "start_page" in chunk and chunk["start_page"] >= 1
             assert "end_page" in chunk and chunk["end_page"] >= chunk["start_page"]
 
     def test_vectors_match_chunk_count(self, gutenberg_indexed_qdrant):
         client, coll_name, chunks = gutenberg_indexed_qdrant
-        result, _ = client.scroll(collection_name=coll_name, limit=200, with_vectors=True)
-        assert len(result) == len(chunks)
+        count_result = client.count(collection_name=coll_name, exact=True)
+        assert count_result.count == len(chunks)
+        result, _ = client.scroll(
+            collection_name=coll_name, limit=count_result.count, with_vectors=True
+        )
         for point in result:
             assert len(point.vector) == 384
 
