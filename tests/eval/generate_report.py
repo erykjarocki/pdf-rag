@@ -30,12 +30,17 @@ h1 { border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
 .delta.flat { color: #6c757d; }
 .delta.none { color: #999; font-style: italic; }
 .comparison {
-  background: white; border: 1px solid #dee2e6;
+  background: white; border: 2px solid #1a1a2e;
   border-radius: 8px; margin: 24px 0; overflow: hidden;
 }
 .comparison-header {
-  padding: 12px 16px; background: #1a1a2e; color: white;
-  font-weight: 600; font-size: 14px;
+  padding: 14px 16px; background: #1a1a2e; color: white;
+  font-weight: 600; font-size: 15px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.comparison-header .badge {
+  background: #4caf50; color: white; padding: 2px 8px;
+  border-radius: 4px; font-size: 12px; font-weight: 600;
 }
 .comparison table {
   width: 100%; border-collapse: collapse; font-size: 14px;
@@ -51,6 +56,10 @@ h1 { border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
 .comparison .delta-up { color: #28a745; font-weight: 600; }
 .comparison .delta-down { color: #dc3545; font-weight: 600; }
 .comparison .delta-flat { color: #6c757d; }
+.comparison .summary {
+  padding: 12px 16px; background: #f0f7ff; border-top: 1px solid #dee2e6;
+  font-size: 13px; color: #333;
+}
 .query-card {
   background: white; border: 1px solid #dee2e6;
   border-radius: 8px; margin: 16px 0; overflow: hidden;
@@ -112,6 +121,81 @@ def _delta_html(current, baseline_val, key):
     return f'<div class="delta {cls}">{sign}{diff:.2f}</div>'
 
 
+def _pipeline_comparison_html(pipeline):
+    """Build the two-stage pipeline comparison section."""
+    if not pipeline or "before" not in pipeline or "after" not in pipeline:
+        return ""
+
+    before = pipeline["before"]
+    after = pipeline["after"]
+
+    # Compute overall improvement
+    improvements = []
+    for key, label in [
+        ("recall_at_2", "Recall@2"),
+        ("precision_at_2", "Precision@2"),
+        ("mrr", "MRR"),
+    ]:
+        b = before.get(key, 0)
+        a = after.get(key, 0)
+        d = a - b
+        if d > 0.01:
+            improvements.append(f"{label} +{d:.0%}")
+        elif d < -0.01:
+            improvements.append(f"{label} {d:.0%}")
+
+    summary_text = (
+        "Reranking improves retrieval precision "
+        "by rescoring candidates with a cross-encoder."
+    )
+    if improvements:
+        summary_text = f"Improvements: {', '.join(improvements)}."
+
+    html = (
+        '<div class="comparison">\n'
+        '  <div class="comparison-header">\n'
+        "    <span>Pipeline: Bi-Encoder → Cross-Encoder Reranking</span>\n"
+        '    <span class="badge">RERANK ENABLED</span>\n'
+        "  </div>\n"
+        "  <table>\n"
+        "    <thead><tr>"
+        "<th>Metric</th>"
+        "<th>Stage 1: Bi-Encoder</th>"
+        "<th>Stage 2: +Rerank</th>"
+        "<th>Delta</th>"
+        "</tr></thead>\n"
+        "    <tbody>\n"
+    )
+
+    for key, label in [
+        ("recall_at_2", "Recall@2"),
+        ("precision_at_2", "Precision@2"),
+        ("mrr", "MRR"),
+    ]:
+        b = before.get(key, 0)
+        a = after.get(key, 0)
+        d = a - b
+        if abs(d) < 0.005:
+            delta_cls, delta_text = "delta-flat", "—"
+        elif d > 0:
+            delta_cls, delta_text = "delta-up", f"+{d:.2f}"
+        else:
+            delta_cls, delta_text = "delta-down", f"{d:.2f}"
+        html += (
+            f"      <tr><td><strong>{label}</strong></td>"
+            f"<td>{b:.2f}</td><td>{a:.2f}</td>"
+            f'<td class="{delta_cls}">{delta_text}</td></tr>\n'
+        )
+
+    html += (
+        "    </tbody>\n"
+        "  </table>\n"
+        f'  <div class="summary">{summary_text}</div>\n'
+        "</div>\n\n"
+    )
+    return html
+
+
 def generate():
     if not REPORT_JSON.exists():
         print(f"No {REPORT_JSON} found — skipping report generation.")
@@ -146,43 +230,9 @@ def generate():
         "<h1>DOC RAG — Eval Report</h1>\n\n"
     )
 
-    # Pipeline comparison table (two-stage)
+    # Pipeline comparison (prominent, at the top)
     pipeline = data.get("pipeline_comparison")
-    if pipeline and "before" in pipeline and "after" in pipeline:
-        before = pipeline["before"]
-        after = pipeline["after"]
-        html += (
-            '<div class="comparison">\n'
-            '  <div class="comparison-header">'
-            "Pipeline Comparison: Bi-Encoder → Cross-Encoder Reranking"
-            "</div>\n"
-            "  <table>\n"
-            "    <thead><tr>"
-            "<th>Metric</th><th>Before (Bi-Encoder)</th>"
-            "<th>After (+Rerank)</th><th>Delta</th>"
-            "</tr></thead>\n"
-            "    <tbody>\n"
-        )
-        for key, label in [
-            ("recall_at_2", "Recall@2"),
-            ("precision_at_2", "Precision@2"),
-            ("mrr", "MRR"),
-        ]:
-            b = before.get(key, 0)
-            a = after.get(key, 0)
-            d = a - b
-            if abs(d) < 0.005:
-                delta_cls, delta_text = "delta-flat", "—"
-            elif d > 0:
-                delta_cls, delta_text = "delta-up", f"+{d:.2f}"
-            else:
-                delta_cls, delta_text = "delta-down", f"{d:.2f}"
-            html += (
-                f"      <tr><td>{label}</td>"
-                f"<td>{b:.2f}</td><td>{a:.2f}</td>"
-                f'<td class="{delta_cls}">{delta_text}</td></tr>\n'
-            )
-        html += "    </tbody>\n  </table>\n</div>\n\n"
+    html += _pipeline_comparison_html(pipeline)
 
     # Standard metrics cards
     html += (

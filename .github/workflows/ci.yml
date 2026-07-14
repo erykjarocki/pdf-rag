@@ -151,12 +151,41 @@ jobs:
       - run: |
           source .venv/bin/activate
           pytest tests/eval/ -v -m rerank
+      - name: Generate rerank comparison
+        if: always()
+        run: |
+          source .venv/bin/activate
+          python -c "
+          import json
+          from pathlib import Path
+          data = json.loads(Path('tests/eval/eval-report.json').read_text())
+          pc = data.get('pipeline_comparison')
+          if pc and 'before' in pc and 'after' in pc:
+              b, a = pc['before'], pc['after']
+              lines = ['## Rerank Pipeline Comparison\n',
+                       '| Metric | Bi-Encoder | +Rerank | Delta |',
+                       '|--------|----------:|--------:|------:|']
+              for k, l in [('recall_at_2','Recall@2'),('precision_at_2','Precision@2'),('mrr','MRR')]:
+                  bv, av = b.get(k,0), a.get(k,0)
+                  d = av - bv
+                  sign = '+' if d > 0 else ''
+                  lines.append(f'| {l} | {bv:.2f} | {av:.2f} | {sign}{d:.2f} |')
+              Path('tests/eval/rerank-comparison.md').write_text('\n'.join(lines))
+          "
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rerank-report
+          path: |
+            tests/eval/eval-report.html
+            tests/eval/eval-report.json
+            tests/eval/rerank-comparison.md
       - name: Comment on PR
         if: github.event_name == 'pull_request' && always()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: rerank-report
-          path: tests/eval/rerank-report.md
+          path: tests/eval/rerank-comparison.md
 
   deploy-report:
     needs: [test-eval, test-rerank]

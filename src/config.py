@@ -50,7 +50,7 @@ class ApiConfig:
 
 @dataclass
 class RerankConfig:
-    enabled: bool = False
+    enabled: bool = True
     model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     top_n: int = 20  # Retrieve this many candidates before reranking
 

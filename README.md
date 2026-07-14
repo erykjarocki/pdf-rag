@@ -151,9 +151,9 @@ doc-rag/
 - RAM: min 4 GB
 - Disk: ~1.5 GB
 
-## Re-ranking (Optional)
+## Re-ranking
 
-DOC-RAG supports cross-encoder re-ranking for higher precision. When enabled, it retrieves more candidates initially, then rescores them using a more accurate model.
+DOC-RAG uses cross-encoder re-ranking by default for higher precision. The two-stage pipeline first retrieves candidates with a fast bi-encoder, then rescores them with a more accurate cross-encoder model.
 
 ```json
 // ~/.config/doc-rag/config.json
@@ -166,15 +166,15 @@ DOC-RAG supports cross-encoder re-ranking for higher precision. When enabled, it
 }
 ```
 
-**When to enable:**
-- Answer quality matters more than latency
-- Complex queries requiring precise matching
-- ~100ms additional latency is acceptable
+**To disable re-ranking** (for maximum speed or resource-constrained hardware):
 
-**When to keep disabled:**
-- You need maximum speed
-- Simple keyword searches
-- Resource-constrained hardware
+```json
+{
+  "rerank": {
+    "enabled": false
+  }
+}
+```
 
 See [Architecture](docs/architecture.md) for detailed explanation of two-stage retrieval.
 
