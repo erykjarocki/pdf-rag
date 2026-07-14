@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import re
-
 from src.config import CHUNK_OVERLAP, CHUNK_SIZE
 from src.embeddings import get_model, get_tokenizer
 from src.extraction import page_at_position

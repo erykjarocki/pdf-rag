@@ -15,6 +15,24 @@ on:
       - "tests/**"
       - "pyproject.toml"
       - ".github/workflows/ci.yml"
+  workflow_dispatch:
+    inputs:
+      chunk_size:
+        description: 'Chunk size in tokens'
+        default: '384'
+        type: string
+      chunk_overlap:
+        description: 'Chunk overlap in tokens'
+        default: '50'
+        type: string
+      rerank_enabled:
+        description: 'Enable cross-encoder reranking'
+        default: true
+        type: boolean
+      embed_model:
+        description: 'Embedding model (leave default unless testing new model)'
+        default: 'intfloat/multilingual-e5-small'
+        type: string
 
 permissions:
   pages: write
@@ -107,9 +125,15 @@ jobs:
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
-      - run: |
+      - name: Run eval tests
+        run: |
           source .venv/bin/activate
           pytest tests/eval/ -v -m "eval or rerank"
+        env:
+          CHUNK_SIZE: ${{ inputs.chunk_size || '384' }}
+          CHUNK_OVERLAP: ${{ inputs.chunk_overlap || '50' }}
+          RERANK_ENABLED: ${{ inputs.rerank_enabled || 'true' }}
+          EMBED_MODEL: ${{ inputs.embed_model || 'intfloat/multilingual-e5-small' }}
       - name: Compare to baseline
         if: always()
         run: |
