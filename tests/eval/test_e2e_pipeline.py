@@ -379,3 +379,88 @@ class TestRerankBehavior:
         assert len(results) > 0
         for r in results:
             assert "rerank_score" not in r, "Unexpected rerank_score when rerank=False"
+
+
+# ---------------------------------------------------------------------------
+# Two-Stage Pipeline Comparison
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.rerank
+class TestPipelineComparison:
+    """Run both stages of the retrieval pipeline in one session.
+
+    Stage 1: Bi-encoder retrieves candidates (baseline metrics)
+    Stage 2: Cross-encoder re-ranks candidates (final metrics)
+
+    Both stages are stored on the session so the report shows a single
+    comparison table with Before → After → Delta.
+    """
+
+    def test_pipeline_comparison(self, request, indexed_qdrant):
+        from tests.eval.conftest import collect_eval_result, collect_rerank_result
+
+        labels = _load_labels()
+        recalls_before, recalls_after = [], []
+        precisions_before, precisions_after = [], []
+        rrs_before, rrs_after = [], []
+
+        for item in labels:
+            query = item["query"]
+            relevant = item["relevant_pages"]
+
+            # Stage 1: bi-encoder only
+            results_before = search_book(query, book="tiny_sample", rerank=False)
+            r1, p1, rr1 = collect_rerank_result(
+                request.session, query, results_before, relevant, k=2
+            )
+            recalls_before.append(r1)
+            precisions_before.append(p1)
+            rrs_before.append(rr1)
+
+            # Stage 2: bi-encoder + cross-encoder
+            results_after = search_book(query, book="tiny_sample", rerank=True)
+            r2, p2, rr2 = collect_eval_result(
+                request.session, f"{query} (pipeline)", results_after, relevant, k=2
+            )
+            recalls_after.append(r2)
+            precisions_after.append(p2)
+            rrs_after.append(rr2)
+
+        # Compute averages
+        def avg(xs):
+            return sum(xs) / len(xs) if xs else 0
+
+        m_before = {
+            "recall": avg(recalls_before),
+            "precision": avg(precisions_before),
+            "mrr": avg(rrs_before),
+        }
+        m_after = {
+            "recall": avg(recalls_after),
+            "precision": avg(precisions_after),
+            "mrr": avg(rrs_after),
+        }
+
+        # Print comparison table
+        print("\n")
+        print("=" * 60)
+        print("TWO-STAGE PIPELINE COMPARISON")
+        print("=" * 60)
+        print(f"  {'Metric':<15} {'Bi-Encoder':>12} {'+Rerank':>12} {'Delta':>10}")
+        print(f"  {'-'*49}")
+        for key, label in [("recall", "Recall@2"), ("precision", "Precision@2"), ("mrr", "MRR")]:
+            b, a = m_before[key], m_after[key]
+            d = a - b
+            sign = "+" if d > 0 else ""
+            print(f"  {label:<15} {b:>12.2f} {a:>12.2f} {sign}{d:>9.2f}")
+        print("=" * 60)
+
+        # Assertions: reranking should not severely degrade metrics
+        # (small fluctuations are expected since reranking re-orders results)
+        assert m_after["recall"] >= m_before["recall"] - 0.10, (
+            f"Recall degraded significantly: {m_before['recall']:.2f} → {m_after['recall']:.2f}"
+        )
+        assert m_after["mrr"] >= m_before["mrr"] - 0.10, (
+            f"MRR degraded significantly: {m_before['mrr']:.2f} → {m_after['mrr']:.2f}"
+        )

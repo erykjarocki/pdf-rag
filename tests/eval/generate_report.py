@@ -29,6 +29,28 @@ h1 { border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
 .delta.down { color: #dc3545; }
 .delta.flat { color: #6c757d; }
 .delta.none { color: #999; font-style: italic; }
+.comparison {
+  background: white; border: 1px solid #dee2e6;
+  border-radius: 8px; margin: 24px 0; overflow: hidden;
+}
+.comparison-header {
+  padding: 12px 16px; background: #1a1a2e; color: white;
+  font-weight: 600; font-size: 14px;
+}
+.comparison table {
+  width: 100%; border-collapse: collapse; font-size: 14px;
+}
+.comparison th {
+  padding: 10px 16px; text-align: left; background: #e9ecef;
+  font-weight: 600; border-bottom: 2px solid #dee2e6;
+}
+.comparison td {
+  padding: 10px 16px; border-bottom: 1px solid #eee;
+}
+.comparison tr:last-child td { border-bottom: none; }
+.comparison .delta-up { color: #28a745; font-weight: 600; }
+.comparison .delta-down { color: #dc3545; font-weight: 600; }
+.comparison .delta-flat { color: #6c757d; }
 .query-card {
   background: white; border: 1px solid #dee2e6;
   border-radius: 8px; margin: 16px 0; overflow: hidden;
@@ -122,6 +144,48 @@ def generate():
         f"<style>{CSS}</style>\n"
         "</head>\n<body>\n"
         "<h1>DOC RAG — Eval Report</h1>\n\n"
+    )
+
+    # Pipeline comparison table (two-stage)
+    pipeline = data.get("pipeline_comparison")
+    if pipeline and "before" in pipeline and "after" in pipeline:
+        before = pipeline["before"]
+        after = pipeline["after"]
+        html += (
+            '<div class="comparison">\n'
+            '  <div class="comparison-header">'
+            "Pipeline Comparison: Bi-Encoder → Cross-Encoder Reranking"
+            "</div>\n"
+            "  <table>\n"
+            "    <thead><tr>"
+            "<th>Metric</th><th>Before (Bi-Encoder)</th>"
+            "<th>After (+Rerank)</th><th>Delta</th>"
+            "</tr></thead>\n"
+            "    <tbody>\n"
+        )
+        for key, label in [
+            ("recall_at_2", "Recall@2"),
+            ("precision_at_2", "Precision@2"),
+            ("mrr", "MRR"),
+        ]:
+            b = before.get(key, 0)
+            a = after.get(key, 0)
+            d = a - b
+            if abs(d) < 0.005:
+                delta_cls, delta_text = "delta-flat", "—"
+            elif d > 0:
+                delta_cls, delta_text = "delta-up", f"+{d:.2f}"
+            else:
+                delta_cls, delta_text = "delta-down", f"{d:.2f}"
+            html += (
+                f"      <tr><td>{label}</td>"
+                f"<td>{b:.2f}</td><td>{a:.2f}</td>"
+                f'<td class="{delta_cls}">{delta_text}</td></tr>\n'
+            )
+        html += "    </tbody>\n  </table>\n</div>\n\n"
+
+    # Standard metrics cards
+    html += (
         '<div class="metrics">\n'
         f'  <div class="metric {recall_cls}">\n'
         f'    <div class="value">{metrics["recall_at_2"]:.2f}</div>\n'

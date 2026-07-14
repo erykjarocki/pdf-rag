@@ -30,17 +30,19 @@ BASELINE_PATH = Path(__file__).parent / "eval-baseline.json"
 def pytest_sessionfinish(session, exitstatus):
     """Print terminal summary and write eval-report.json after all tests."""
     results = getattr(session, "eval_results", [])
-    if not results:
+    rerank_results = getattr(session, "rerank_results", [])
+    if not results and not rerank_results:
         return
 
-    # Compute metrics
-    recalls = [item["recall_at_k"] for item in results]
-    precisions = [item["precision_at_k"] for item in results]
-    rrs = [item["reciprocal_rank"] for item in results]
-
-    avg_recall = sum(recalls) / len(recalls)
-    avg_precision = sum(precisions) / len(precisions)
-    avg_mrr = sum(rrs) / len(rrs)
+    def _compute_metrics(items):
+        recalls = [item["recall_at_k"] for item in items]
+        precisions = [item["precision_at_k"] for item in items]
+        rrs = [item["reciprocal_rank"] for item in items]
+        return {
+            "recall_at_2": round(sum(recalls) / len(recalls), 4),
+            "precision_at_2": round(sum(precisions) / len(precisions), 4),
+            "mrr": round(sum(rrs) / len(rrs), 4),
+        }
 
     # Terminal summary
     terminal = session.config.get_terminal_writer()
@@ -64,11 +66,14 @@ def pytest_sessionfinish(session, exitstatus):
         terminal.write("\n")
 
     terminal.write("-" * 70 + "\n")
-    terminal.write(
-        f"Recall@2: {avg_recall:.2f} | "
-        f"Precision@2: {avg_precision:.2f} | "
-        f"MRR: {avg_mrr:.2f}\n"
-    )
+
+    if results:
+        m = _compute_metrics(results)
+        terminal.write(
+            f"Recall@2: {m['recall_at_2']:.2f} | "
+            f"Precision@2: {m['precision_at_2']:.2f} | "
+            f"MRR: {m['mrr']:.2f}\n"
+        )
 
     # Show baseline delta if available
     baseline = None
@@ -82,7 +87,9 @@ def pytest_sessionfinish(session, exitstatus):
         except (json.JSONDecodeError, KeyError):
             pass
 
-    if baseline:
+    if baseline and results:
+        m = _compute_metrics(results)
+
         def _fmt_delta(cur, base):
             diff = cur - base
             if abs(diff) < 0.005:
@@ -92,22 +99,53 @@ def pytest_sessionfinish(session, exitstatus):
 
         terminal.write(
             f"          "
-            f"(base: {_fmt_delta(avg_recall, baseline.get('recall_at_2', 0))} | "
-            f"{_fmt_delta(avg_precision, baseline.get('precision_at_2', 0))} | "
-            f"{_fmt_delta(avg_mrr, baseline.get('mrr', 0))})\n"
+            f"(base: {_fmt_delta(m['recall_at_2'], baseline.get('recall_at_2', 0))} | "
+            f"{_fmt_delta(m['precision_at_2'], baseline.get('precision_at_2', 0))} | "
+            f"{_fmt_delta(m['mrr'], baseline.get('mrr', 0))})\n"
         )
+
+    # Two-stage comparison if both stages present
+    if rerank_results:
+        m_before = _compute_metrics(results) if results else {
+            "recall_at_2": 0, "precision_at_2": 0, "mrr": 0
+        }
+        m_after = _compute_metrics(rerank_results)
+        terminal.write("\n")
+        terminal.write("=" * 70 + "\n")
+        terminal.write("PIPELINE COMPARISON: Bi-Encoder → Cross-Encoder Reranking\n")
+        terminal.write("=" * 70 + "\n")
+        terminal.write(
+            f"  {'Metric':<15} {'Before':>10} {'After':>10} {'Delta':>10}\n"
+        )
+        terminal.write(f"  {'-'*45}\n")
+        for key, label in [
+            ("recall_at_2", "Recall@2"),
+            ("precision_at_2", "Precision@2"),
+            ("mrr", "MRR"),
+        ]:
+            b = m_before[key]
+            a = m_after[key]
+            d = a - b
+            sign = "+" if d > 0 else ""
+            terminal.write(f"  {label:<15} {b:>10.2f} {a:>10.2f} {sign}{d:>9.2f}\n")
+        terminal.write("-" * 70 + "\n")
 
     terminal.write("-" * 70 + "\n\n")
 
     # Write JSON report
     report = {
         "queries": results,
-        "metrics": {
-            "recall_at_2": round(avg_recall, 4),
-            "precision_at_2": round(avg_precision, 4),
-            "mrr": round(avg_mrr, 4),
-        },
+        "metrics": _compute_metrics(results) if results else {},
     }
+
+    if rerank_results:
+        report["rerank_queries"] = rerank_results
+        report["rerank_metrics"] = _compute_metrics(rerank_results)
+        report["pipeline_comparison"] = {
+            "before": _compute_metrics(results) if results else {},
+            "after": _compute_metrics(rerank_results),
+        }
+
     REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False))
 
     # Generate detailed HTML report
@@ -153,6 +191,55 @@ def collect_eval_result(session, query, results, relevant_pages, k=2):
         )
 
     session.eval_results.append(
+        {
+            "query": query,
+            "relevant_pages": relevant_pages,
+            "retrieved_fragments": fragments,
+            "recall_at_k": recall,
+            "precision_at_k": precision,
+            "reciprocal_rank": rr,
+        }
+    )
+
+    return recall, precision, rr
+
+
+def collect_rerank_result(session, query, results, relevant_pages, k=2):
+    """Store stage-1 (bi-encoder) results for two-stage pipeline comparison.
+
+    Uses a separate session attribute (rerank_results) so both stages
+    appear in the same report.
+    """
+    if not hasattr(session, "rerank_results"):
+        session.rerank_results = []
+
+    if any(item["query"] == query for item in session.rerank_results):
+        return (
+            _recall_at_k(results, relevant_pages, k),
+            _precision_at_k(results, relevant_pages, k),
+            _mrr(results, relevant_pages),
+        )
+
+    top_k = results[:k]
+    rr = _mrr(results, relevant_pages)
+    recall = _recall_at_k(results, relevant_pages, k)
+    precision = _precision_at_k(results, relevant_pages, k)
+
+    fragments = []
+    for i, r in enumerate(top_k, 1):
+        fragments.append(
+            {
+                "rank": i,
+                "text": r["text"],
+                "score": round(r["score"], 4),
+                "start_page": r["start_page"],
+                "end_page": r["end_page"],
+                "chapter": r.get("chapter", ""),
+                "is_relevant": r["start_page"] in relevant_pages,
+            }
+        )
+
+    session.rerank_results.append(
         {
             "query": query,
             "relevant_pages": relevant_pages,

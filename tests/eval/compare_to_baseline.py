@@ -45,8 +45,10 @@ def main():
     labels = ["Recall@2", "Precision@2", "MRR"]
 
     has_regression = False
-    rows = []
+    lines = []
 
+    # Standard baseline comparison
+    rows = []
     for metric, label in zip(metrics, labels):
         b = baseline.get(metric, 0)
         c = current["metrics"].get(metric, 0)
@@ -56,14 +58,32 @@ def main():
             has_regression = True
         rows.append((label, f"{b:.4f}", f"{c:.4f}", icon))
 
-    # Build markdown
-    lines = [
-        "## Eval Report — Baseline Comparison\n",
-        "| Metric | Baseline | Current | Delta |",
-        "|--------|----------|---------|-------|",
-    ]
+    lines.append("## Eval Report — Baseline Comparison\n")
+    lines.append("| Metric | Baseline | Current | Delta |")
+    lines.append("|--------|----------|---------|-------|")
     for label, b, c, icon in rows:
         lines.append(f"| {label} | {b} | {c} | {icon} |")
+
+    # Pipeline comparison (two-stage)
+    pipeline = current.get("pipeline_comparison")
+    if pipeline and "before" in pipeline and "after" in pipeline:
+        before = pipeline["before"]
+        after = pipeline["after"]
+        lines.append("")
+        lines.append("## Pipeline Comparison: Bi-Encoder → Cross-Encoder\n")
+        lines.append("| Metric | Before (Bi-Encoder) | After (+Rerank) | Delta |")
+        lines.append("|--------|--------------------:|----------------:|------:|")
+        for metric, label in zip(metrics, labels):
+            b = before.get(metric, 0)
+            a = after.get(metric, 0)
+            d = a - b
+            if abs(d) < 0.001:
+                icon = "—"
+            elif d > 0:
+                icon = f"+{d:.4f}"
+            else:
+                icon = f"{d:.4f}"
+            lines.append(f"| {label} | {b:.4f} | {a:.4f} | {icon} |")
 
     lines.append("")
     if has_regression:
