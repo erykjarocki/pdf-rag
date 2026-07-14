@@ -143,7 +143,7 @@ class TestRetrievalMetrics:
         recalls = []
 
         for item in labels:
-            results = search_book(item["query"], book="tiny_sample")
+            results = search_book(item["query"], book="tiny_sample", rerank=False)
             r, _, _ = collect_eval_result(
                 request.session, item["query"], results, item["relevant_pages"], k=2
             )
@@ -161,7 +161,7 @@ class TestRetrievalMetrics:
         precisions = []
 
         for item in labels:
-            results = search_book(item["query"], book="tiny_sample")
+            results = search_book(item["query"], book="tiny_sample", rerank=False)
             _, p, _ = collect_eval_result(
                 request.session, item["query"], results, item["relevant_pages"], k=2
             )
@@ -179,7 +179,7 @@ class TestRetrievalMetrics:
         rrs = []
 
         for item in labels:
-            results = search_book(item["query"], book="tiny_sample")
+            results = search_book(item["query"], book="tiny_sample", rerank=False)
             _, _, rr = collect_eval_result(
                 request.session, item["query"], results, item["relevant_pages"], k=2
             )
