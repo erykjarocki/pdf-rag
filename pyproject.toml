@@ -49,5 +49,6 @@ markers = [
     "unit: fast, no I/O (run every save)",
     "integration: uses stubbed infrastructure (run on PR)",
     "eval: slow, uses real models (run nightly)",
+    "rerank: cross-encoder re-ranking tests (separate CI job)",
 ]
 addopts = "-v --tb=short"

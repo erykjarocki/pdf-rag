@@ -87,6 +87,9 @@ test-integration:
 test-eval:
 	$(PYTEST) tests/eval/ -v -m eval
 
+test-rerank:
+	$(PYTEST) tests/eval/ -v -m rerank
+
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -name "*.pyc" -delete 2>/dev/null || true

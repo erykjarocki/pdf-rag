@@ -13,7 +13,7 @@ mcp = FastMCP("doc-rag")
 
 
 @mcp.tool()
-def search_book_tool(question: str, book: str | None = None) -> str:
+def search_book_tool(question: str, book: str | None = None, rerank: bool | None = None) -> str:
     """Search indexed documents for relevant text fragments using semantic similarity.
 
     Use this tool whenever the user asks a question that might be answered by the
@@ -28,19 +28,22 @@ def search_book_tool(question: str, book: str | None = None) -> str:
         book: Optional document/collection name to restrict search. Use
             list_books_tool() first to discover exact names. If omitted, searches
             all indexed documents.
+        rerank: Whether to apply cross-encoder re-ranking for higher precision.
+            If None, uses the default from config. Enable for complex queries
+            where precision matters more than speed.
 
     Returns: Formatted text fragments with source references (book, chapter, page).
         Each fragment includes enough context to answer the query. If nothing
         relevant is found, returns "No relevant fragments found."
     """
-    fragments = search_book(question, book=book)
+    fragments = search_book(question, book=book, rerank=rerank)
     if not fragments:
         return "No relevant fragments found in the knowledge base."
     return format_fragments_for_prompt(fragments)
 
 
 @mcp.tool()
-def search_book_raw(question: str, book: str | None = None) -> str:
+def search_book_raw(question: str, book: str | None = None, rerank: bool | None = None) -> str:
     """Search indexed documents and return raw structured JSON with relevance scores.
 
     Use this instead of search_book_tool when you need machine-readable output
@@ -52,14 +55,16 @@ def search_book_raw(question: str, book: str | None = None) -> str:
         question: A detailed natural-language query (same as search_book_tool).
         book: Optional document/collection name to restrict search. Use
             list_books_tool() to discover available names.
+        rerank: Whether to apply cross-encoder re-ranking. If None, uses config default.
 
     Returns: JSON array of fragments, each with keys: text, book, chapter, page,
-        score (0-1, higher = more relevant). Useful for thresholding on score
-        or building ranked answer lists.
+        score (0-1, higher = more relevant), and optionally rerank_score when
+        re-ranking is enabled. Useful for thresholding on score or building
+        ranked answer lists.
     """
     import json
 
-    fragments = search_book(question, book=book)
+    fragments = search_book(question, book=book, rerank=rerank)
     return json.dumps(fragments, ensure_ascii=False, indent=2)
 
 

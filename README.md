@@ -8,13 +8,16 @@ Ask questions, get answers based **only on your document content**, with citatio
 
 ```
 Document → text extraction → chunks → embeddings (local) → Qdrant (vector DB)
-                                                              ↓
+                                                               ↓
 OpenCode (MCP) ← search_book_tool ← retriever ← similarity search
-    ↓
-LLM answers based on found fragments
+                                                    ↓
+                                              cross-encoder re-ranking
+                                                    ↓
+                                              LLM answers based on found fragments
 ```
 
 - **100% local** — no data leaves your machine
+- **Two-stage retrieval** — fast bi-encoder + precise cross-encoder re-ranking
 - **OpenCode integration** — works as an MCP tool
 - **Any document** — PDFs, markdown, source code, text files
 - **Always cites sources** — document/chapter/page
@@ -147,6 +150,33 @@ doc-rag/
 - Docker (for Qdrant vector database)
 - RAM: min 4 GB
 - Disk: ~1.5 GB
+
+## Re-ranking (Optional)
+
+DOC-RAG supports cross-encoder re-ranking for higher precision. When enabled, it retrieves more candidates initially, then rescores them using a more accurate model.
+
+```json
+// ~/.config/doc-rag/config.json
+{
+  "rerank": {
+    "enabled": true,
+    "model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "top_n": 20
+  }
+}
+```
+
+**When to enable:**
+- Answer quality matters more than latency
+- Complex queries requiring precise matching
+- ~100ms additional latency is acceptable
+
+**When to keep disabled:**
+- You need maximum speed
+- Simple keyword searches
+- Resource-constrained hardware
+
+See [Architecture](docs/architecture.md) for detailed explanation of two-stage retrieval.
 
 ## Changing the embedding model
 

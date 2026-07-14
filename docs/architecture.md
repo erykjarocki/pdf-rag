@@ -63,22 +63,84 @@ User question
 └────────┬───────────┘
          │  384-dim query vector
          ▼
-┌────────────────────┐
-│  client.query_      │  Cosine similarity search
-│  points()           │  Per collection or all collections
-│  (qdrant_store.py)  │
-└────────┬───────────┘
-         │  top-8 scored results
+┌─────────────────────────────────────────┐
+│  client.query_points()                   │  Cosine similarity search
+│  (qdrant_store.py)                       │  Per collection or all collections
+└────────┬────────────────────────────────┘
+         │  top-20 candidates (when reranking enabled)
          ▼
-┌────────────────────┐
-│  format_fragments_  │  Numbered text blocks with
-│  for_prompt()       │  Polish source citations
-│  (retriever.py)     │
-└────────┬───────────┘
+┌─────────────────────────────────────────┐
+│  rerank()                               │  Cross-encoder rescores each
+│  (reranker.py)                          │  (query, document) pair jointly
+└────────┬────────────────────────────────┘
+         │  top-8 results with rerank scores
+         ▼
+┌─────────────────────────────────────────┐
+│  format_fragments_for_prompt()          │  Numbered text blocks with
+│  (retriever.py)                         │  Polish source citations
+└────────┬────────────────────────────────┘
          │  Formatted string
          ▼
     LLM agent generates answer
 ```
+
+## Bi-Encoder vs Cross-Encoder: Two-Stage Retrieval
+
+DOC-RAG uses a **two-stage retrieval** architecture for optimal speed and accuracy:
+
+### Stage 1: Bi-Encoder (Fast Retrieval)
+
+- **Model:** `intfloat/multilingual-e5-small` (384 dimensions)
+- **How it works:** Encodes query and documents *separately* into vectors, then uses cosine similarity
+- **Speed:** Very fast — can search millions of documents in milliseconds
+- **Accuracy:** Good but imprecise — sees query and document independently
+- **Purpose:** Narrow down millions of chunks to top-20 candidates
+
+### Stage 2: Cross-Encoder (Precise Re-ranking)
+
+- **Model:** `cross-encoder/ms-marco-MiniLM-L-6-v2`
+- **How it works:** Processes query and document *jointly* through a transformer, outputting a relevance score
+- **Speed:** Slower — must process each (query, document) pair individually
+- **Accuracy:** Much higher — sees both query and document simultaneously
+- **Purpose:** Rescore top-20 candidates to find the true top-8
+
+### Why Two Stages?
+
+| Approach | Speed | Accuracy | Use Case |
+|----------|-------|----------|----------|
+| Bi-encoder only | ⚡ Fast | 🎯 Good | Large-scale initial filtering |
+| Cross-encoder only | 🐌 Slow | 🎯🎯 Excellent | Small candidate sets |
+| **Two-stage (our approach)** | ⚡ Fast | 🎯🎯 Excellent | **Production RAG** |
+
+The bi-encoder acts as a fast filter, reducing thousands of candidates to a manageable set. The cross-encoder then applies precise judgment to find the most relevant results.
+
+### Configuration
+
+```json
+{
+  "rerank": {
+    "enabled": false,
+    "model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "top_n": 20
+  }
+}
+```
+
+- `enabled`: Toggle re-ranking on/off (off by default for faster startup)
+- `model`: HuggingFace model identifier (any sentence-transformers CrossEncoder)
+- `top_n`: How many candidates to retrieve before re-ranking (higher = better recall, slower)
+
+### When to Enable Re-ranking
+
+**Enable when:**
+- Answer quality matters more than latency
+- You have complex queries requiring precise matching
+- You're okay with ~100ms additional latency per query
+
+**Keep disabled when:**
+- You need maximum speed
+- Your queries are simple keyword searches
+- You're running on resource-constrained hardware
 
 ## Component Responsibilities
 
@@ -87,6 +149,7 @@ User question
 | `config.py` | Central configuration | Paths, model name, chunk size, collection naming |
 | `adapters.py` | Format-specific extraction | `get_adapter()`, `PDFAdapter`, `MarkdownAdapter`, `CodeAdapter`, `PlainTextAdapter` |
 | `embeddings.py` | Text ↔ vector conversion | `embed()`, `embed_query()`, `get_model()` |
+| `reranker.py` | Cross-encoder re-ranking | `rerank()`, `get_reranker()` |
 | `qdrant_store.py` | Vector DB connection | `ensure_collection()`, `list_collections()` |
 | `chapter_detection.py` | Chapter/section detection (PDF) | `ChapterDetector`, `_build_toc_map()`, `_build_font_map()` |
 | `chunking.py` | Token-aware text splitting | `chunk_text()` |

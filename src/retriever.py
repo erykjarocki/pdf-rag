@@ -1,24 +1,40 @@
-from src.config import TOP_K
+from src.config import RERANK_ENABLED, RERANK_MODEL, RERANK_TOP_N, TOP_K
 from src.embeddings import embed_query
 from src.qdrant_store import get_qdrant_client, list_collections
 from src.utils import collection_name
 
 
-def search_book(query: str, top_k: int = TOP_K, book: str | None = None) -> list[dict]:
+def search_book(
+    query: str,
+    top_k: int = TOP_K,
+    book: str | None = None,
+    rerank: bool | None = None,
+) -> list[dict]:
     """Search the vector database for chunks relevant to a query.
 
     If book is specified, searches only that collection. Otherwise searches
     all collections proportionally and merges results by score.
 
+    Optionally applies cross-encoder re-ranking for higher precision.
+    When enabled, retrieves more candidates initially (RERANK_TOP_N),
+    then rescores and returns top_k results.
+
     Args:
         query: Natural language question or search terms.
         top_k: Maximum number of results to return (default: 8).
         book: Optional book name to filter search to a single collection.
+        rerank: Whether to apply cross-encoder re-ranking. If None,
+            uses RERANK_ENABLED from config.
 
     Returns:
         List of dicts with 'text', 'book', 'chapter', 'start_page',
         'end_page', and 'score' keys, sorted by relevance.
     """
+    use_rerank = rerank if rerank is not None else RERANK_ENABLED
+
+    # When reranking, retrieve more candidates for better rescoring
+    retrieval_limit = RERANK_TOP_N if use_rerank else top_k
+
     query_vector = embed_query(query)
     client = get_qdrant_client()
 
@@ -29,30 +45,38 @@ def search_book(query: str, top_k: int = TOP_K, book: str | None = None) -> list
         resp = client.query_points(
             collection_name=coll,
             query=query_vector,
-            limit=top_k,
+            limit=retrieval_limit,
         )
-        return _format_results(resp.points)
+        results = _format_results(resp.points)
+    else:
+        collections = [c for c in list_collections(client)]
+        if not collections:
+            return []
 
-    collections = [c for c in list_collections(client)]
-    if not collections:
-        return []
+        all_results = []
+        per_collection = max(1, retrieval_limit // len(collections)) + 2
 
-    all_results = []
-    per_collection = max(1, top_k // len(collections)) + 2
+        for coll in collections:
+            try:
+                resp = client.query_points(
+                    collection_name=coll,
+                    query=query_vector,
+                    limit=per_collection,
+                )
+                all_results.extend(_format_results(resp.points))
+            except Exception:
+                continue
 
-    for coll in collections:
-        try:
-            resp = client.query_points(
-                collection_name=coll,
-                query=query_vector,
-                limit=per_collection,
-            )
-            all_results.extend(_format_results(resp.points))
-        except Exception:
-            continue
+        all_results.sort(key=lambda x: x["score"], reverse=True)
+        results = all_results[:retrieval_limit]
 
-    all_results.sort(key=lambda x: x["score"], reverse=True)
-    return all_results[:top_k]
+    # Apply cross-encoder re-ranking if enabled
+    if use_rerank and results:
+        from src.reranker import rerank as cross_encoder_rerank
+
+        results = cross_encoder_rerank(query, results, top_k=top_k, model_name=RERANK_MODEL)
+
+    return results[:top_k]
 
 
 def _format_results(points) -> list[dict]:

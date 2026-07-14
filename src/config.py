@@ -49,12 +49,20 @@ class ApiConfig:
 
 
 @dataclass
+class RerankConfig:
+    enabled: bool = False
+    model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    top_n: int = 20  # Retrieve this many candidates before reranking
+
+
+@dataclass
 class Settings:
     embedding: EmbeddingConfig = field(default_factory=EmbeddingConfig)
     qdrant: QdrantConfig = field(default_factory=QdrantConfig)
     chunking: ChunkingConfig = field(default_factory=ChunkingConfig)
     search: SearchConfig = field(default_factory=SearchConfig)
     api: ApiConfig = field(default_factory=ApiConfig)
+    rerank: RerankConfig = field(default_factory=RerankConfig)
 
 
 def _apply_env_overrides(settings: Settings) -> Settings:
@@ -69,6 +77,9 @@ def _apply_env_overrides(settings: Settings) -> Settings:
         "TOP_K": (settings.search, "top_k"),
         "API_HOST": (settings.api, "host"),
         "API_PORT": (settings.api, "port"),
+        "RERANK_ENABLED": (settings.rerank, "enabled"),
+        "RERANK_MODEL": (settings.rerank, "model"),
+        "RERANK_TOP_N": (settings.rerank, "top_n"),
     }
     for env_key, (obj, attr) in env_map.items():
         val = os.getenv(env_key)
@@ -106,6 +117,10 @@ def load_config() -> Settings:
                 for k, v in data["api"].items():
                     if hasattr(settings.api, k):
                         setattr(settings.api, k, v)
+            if "rerank" in data:
+                for k, v in data["rerank"].items():
+                    if hasattr(settings.rerank, k):
+                        setattr(settings.rerank, k, v)
         except (json.JSONDecodeError, OSError):
             pass  # Fall back to defaults
 
@@ -138,3 +153,7 @@ TOP_K = settings.search.top_k
 
 API_HOST = settings.api.host
 API_PORT = settings.api.port
+
+RERANK_ENABLED = settings.rerank.enabled
+RERANK_MODEL = settings.rerank.model
+RERANK_TOP_N = settings.rerank.top_n
