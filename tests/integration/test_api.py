@@ -112,3 +112,51 @@ class TestIngestFolderEndpoint:
         )
         assert response.status_code == 200
         mock_ingest.assert_called_once_with("/tmp/test-docs", reindex=True)
+
+
+@pytest.mark.integration
+class TestCollectionsEndpoint:
+    @patch("src.api.list_collections")
+    @patch("src.api.get_qdrant_client")
+    def test_get_collection_details(self, mock_get_client, mock_list, client):
+        mock_list.return_value = ["my-doc"]
+        mock_qdrant = mock_get_client.return_value
+        mock_qdrant.count.return_value.count = 42
+
+        # Mock query_points to return sample points
+        from unittest.mock import MagicMock
+
+        point = MagicMock()
+        point.payload = {"book": "my-doc", "chapter": "Chapter 1"}
+        mock_qdrant.query_points.return_value.points = [point]
+
+        response = client.get("/collections/my-doc")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "my-doc"
+        assert data["chunks"] == 42
+        assert "my-doc" in data["documents"]
+
+    @patch("src.api.list_collections")
+    def test_get_collection_not_found(self, mock_list, client):
+        mock_list.return_value = ["other-doc"]
+        response = client.get("/collections/nonexistent")
+        assert response.status_code == 404
+
+    @patch("src.api.list_collections")
+    @patch("src.api.get_qdrant_client")
+    @patch("src.api.delete_collection")
+    def test_delete_collection(self, mock_delete, mock_get_client, mock_list, client):
+        mock_list.return_value = ["my-doc"]
+        mock_get_client.return_value = mock_get_client
+
+        response = client.delete("/collections/my-doc")
+        assert response.status_code == 200
+        assert response.json()["status"] == "deleted"
+        assert response.json()["collection"] == "my-doc"
+
+    @patch("src.api.list_collections")
+    def test_delete_collection_not_found(self, mock_list, client):
+        mock_list.return_value = ["other-doc"]
+        response = client.delete("/collections/nonexistent")
+        assert response.status_code == 404

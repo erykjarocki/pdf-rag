@@ -83,6 +83,73 @@ def list_books_tool() -> str:
 
 
 @mcp.tool()
+def get_collection_info(collection_name: str) -> str:
+    """Get details about a specific indexed collection.
+
+    Shows the number of chunks, which documents it contains, and what
+    chapters/sections are indexed.
+
+    Args:
+        collection_name: Name of the collection (use list_books_tool to discover names).
+
+    Returns: Summary with chunk count, document names, and chapter list.
+    """
+    from src.qdrant_store import get_qdrant_client
+
+    collections = list_collections()
+    if collection_name not in collections:
+        return f"Collection '{collection_name}' not found. Available: {sorted(collections)}"
+
+    client = get_qdrant_client()
+    count_result = client.count(collection_name=collection_name, exact=True)
+    total = count_result.count if hasattr(count_result, "count") else 0
+
+    sample = client.query_points(
+        collection_name=collection_name,
+        query=[0.0] * 384,
+        limit=min(total, 100),
+    )
+
+    books = set()
+    chapters = set()
+    for point in sample.points:
+        if point.payload:
+            books.add(point.payload.get("book", ""))
+            chapters.add(point.payload.get("chapter", ""))
+
+    lines = [
+        f"Collection: {collection_name}",
+        f"Chunks: {total}",
+        f"Documents: {', '.join(sorted(books))}",
+    ]
+    if chapters - {""}:
+        lines.append(f"Chapters: {', '.join(sorted(chapters - {''}))}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def delete_document(collection_name: str) -> str:
+    """Delete a document/collection from the knowledge base.
+
+    Removes the collection and all its chunks permanently. Use
+    list_books_tool() first to see what's available.
+
+    Args:
+        collection_name: Name of the collection to delete.
+
+    Returns: Confirmation message or error if not found.
+    """
+    from src.qdrant_store import delete_collection as _delete
+
+    collections = list_collections()
+    if collection_name not in collections:
+        return f"Collection '{collection_name}' not found. Available: {sorted(collections)}"
+
+    _delete(collection_name)
+    return f"Deleted collection '{collection_name}' from the knowledge base."
+
+
+@mcp.tool()
 def ingest_document(file_path: str, reindex: bool = False) -> str:
     """Ingest a document into the knowledge base for semantic search.
 

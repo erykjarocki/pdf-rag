@@ -118,9 +118,53 @@ def list_collections_endpoint():
     return {"collections": result}
 
 
+@app.get("/collections/{name}")
+def get_collection_details(name: str):
+    """Get details about a specific collection."""
+    client = get_qdrant_client()
+    collections = list_collections(client)
+    if name not in collections:
+        raise HTTPException(status_code=404, detail=f"Collection '{name}' not found")
+
+    count_result = client.count(collection_name=name, exact=True)
+    total = count_result.count if hasattr(count_result, "count") else 0
+
+    # Sample points to get document names and chapters
+    sample = client.query_points(
+        collection_name=name,
+        query=[0.0] * 384,
+        limit=min(total, 100),
+    )
+
+    books = set()
+    chapters = set()
+    for point in sample.points:
+        if point.payload:
+            books.add(point.payload.get("book", ""))
+            chapters.add(point.payload.get("chapter", ""))
+
+    return {
+        "name": name,
+        "chunks": total,
+        "documents": sorted(books),
+        "chapters": sorted(chapters - {""}),
+    }
+
+
+@app.delete("/collections/{name}")
+def delete_collection_endpoint(name: str):
+    """Delete a collection and all its chunks from the knowledge base."""
+    client = get_qdrant_client()
+    collections = list_collections(client)
+    if name not in collections:
+        raise HTTPException(status_code=404, detail=f"Collection '{name}' not found")
+    delete_collection(name, client)
+    return {"status": "deleted", "collection": name}
+
+
 @app.delete("/books/{name}")
 def remove_book(name: str):
-    """Delete a collection from the knowledge base."""
+    """Delete a collection from the knowledge base (legacy endpoint)."""
     client = get_qdrant_client()
     collections = list_collections(client)
     if name not in collections:
@@ -209,7 +253,9 @@ def health():
 def main():
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    from src.config import API_HOST, API_PORT
+
+    uvicorn.run(app, host=API_HOST, port=API_PORT)
 
 
 if __name__ == "__main__":
