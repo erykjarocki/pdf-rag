@@ -38,6 +38,8 @@ def process_document(file_path: str) -> dict:
     print(
         f"    Sections: {len(doc.sections)}, text length: {len(doc.full_text)} chars"
     )
+    if doc.tables:
+        print(f"    Tables detected: {len(doc.tables)}")
 
     chunks = chunk_text(doc.full_text, doc.page_boundaries, doc.page_nums)
 

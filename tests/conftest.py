@@ -40,9 +40,9 @@ def sample_fragments():
 def sample_pages():
     """Sample PDF page data for ingestion tests."""
     return [
-        {"page_num": 1, "text": "Pierwsza strona tekstu. " * 20},
-        {"page_num": 2, "text": "Druga strona z trescia. " * 20},
-        {"page_num": 3, "text": "Rozdzial III: Nowy rozdzial. " * 20},
+        {"page_num": 1, "text": "Pierwsza strona tekstu. " * 20, "tables": []},
+        {"page_num": 2, "text": "Druga strona z trescia. " * 20, "tables": []},
+        {"page_num": 3, "text": "Rozdzial III: Nowy rozdzial. " * 20, "tables": []},
     ]
 
 

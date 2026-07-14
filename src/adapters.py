@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from src.extraction import extract_pdf, get_full_text_with_page_info
 
@@ -26,6 +26,18 @@ class DocumentSection:
 
 
 @dataclass
+class TableInfo:
+    """Metadata for a table detected in a PDF page."""
+
+    page_num: int
+    bbox: tuple[float, float, float, float]
+    rows: int
+    cols: int
+    markdown: str
+    confidence: float
+
+
+@dataclass
 class Document:
     """Unified document representation produced by adapters."""
 
@@ -34,6 +46,7 @@ class Document:
     page_boundaries: list[int]
     page_nums: list[int]
     sections: list[DocumentSection]
+    tables: list[TableInfo] = field(default_factory=list)
 
 
 def section_for_position(
@@ -95,13 +108,13 @@ class PDFAdapter:
                 chapter = detector.get_chapter_for_page(page_num) or "unknown"
                 if chapter != current_chapter:
                     if current_chapter is not None:
-                        # Find line range for previous chapter
-                        start_char = sum(
-                            len(p["text"]) + 1 for p in pages_data[: chapter_start_page - 1]
+                        # Use page_boundaries for consistent char offsets
+                        start_char = (
+                            page_boundaries[chapter_start_page - 2]
+                            if chapter_start_page > 1
+                            else 0
                         )
-                        end_char = sum(
-                            len(p["text"]) + 1 for p in pages_data[: page_num - 1]
-                        )
+                        end_char = page_boundaries[page_num - 2] if page_num > 1 else 0
                         sections.append(
                             DocumentSection(
                                 text=full_text[start_char:end_char],
@@ -115,8 +128,10 @@ class PDFAdapter:
 
             # Last chapter
             if current_chapter is not None and chapter_start_page is not None:
-                start_char = sum(
-                    len(p["text"]) + 1 for p in pages_data[: chapter_start_page - 1]
+                start_char = (
+                    page_boundaries[chapter_start_page - 2]
+                    if chapter_start_page > 1
+                    else 0
                 )
                 sections.append(
                     DocumentSection(
@@ -127,12 +142,26 @@ class PDFAdapter:
                     )
                 )
 
+        tables = [
+            TableInfo(
+                page_num=t["page_num"],
+                bbox=t["bbox"],
+                rows=t["rows"],
+                cols=t["cols"],
+                markdown=t["markdown"],
+                confidence=t["confidence"],
+            )
+            for p in pages_data
+            for t in p.get("tables", [])
+        ]
+
         return Document(
             name=name,
             full_text=full_text,
             page_boundaries=page_boundaries,
             page_nums=page_nums,
             sections=sections,
+            tables=tables,
         )
 
 
