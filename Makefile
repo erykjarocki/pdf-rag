@@ -10,6 +10,7 @@ PYTEST = venv/bin/pytest
 setup:
 	python3 -m venv venv
 	$(PIP) install -e ".[dev]"
+	@$(PY) -m src.config_cli init 2>/dev/null || true
 	@echo ""
 	@echo "=== Starting Qdrant ==="
 	@if docker ps -a --format '{{.Names}}' | grep -q '^qdrant$$'; then \
@@ -19,6 +20,10 @@ setup:
 			-v $(PWD)/vector_db/qdrant:/qdrant/storage \
 			qdrant/qdrant && echo "Qdrant started." || echo "Docker not available — start Qdrant manually."; \
 	fi
+	@echo ""
+	@echo "=== Config ==="
+	@echo "Config file: ~/.config/pdf-rag/config.json"
+	@echo "Edit this file to change model, ports, chunk size, etc."
 	@echo ""
 	@echo "=== OpenCode Integration ==="
 	@echo "Add this to ~/.config/opencode/opencode.json:"

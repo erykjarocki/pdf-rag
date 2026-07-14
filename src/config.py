@@ -1,25 +1,140 @@
+"""Configuration loader for pdf-rag.
+
+Priority: env vars > ~/.config/pdf-rag/config.json > defaults.
+
+Usage:
+    from src.config import settings
+    print(settings.qdrant.host)
+"""
+
+import json
 import os
-
-from dotenv import load_dotenv
-
-load_dotenv()
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Config file location
+CONFIG_DIR = Path.home() / ".config" / "pdf-rag"
+CONFIG_FILE = CONFIG_DIR / "config.json"
+
+
+@dataclass
+class EmbeddingConfig:
+    model: str = "intfloat/multilingual-e5-small"
+    dimension: int = 384
+
+
+@dataclass
+class QdrantConfig:
+    host: str = "localhost"
+    port: int = 6333
+
+
+@dataclass
+class ChunkingConfig:
+    size: int = 384
+    overlap: int = 50
+
+
+@dataclass
+class SearchConfig:
+    top_k: int = 8
+
+
+@dataclass
+class ApiConfig:
+    host: str = "0.0.0.0"
+    port: int = 8000
+
+
+@dataclass
+class Settings:
+    embedding: EmbeddingConfig = field(default_factory=EmbeddingConfig)
+    qdrant: QdrantConfig = field(default_factory=QdrantConfig)
+    chunking: ChunkingConfig = field(default_factory=ChunkingConfig)
+    search: SearchConfig = field(default_factory=SearchConfig)
+    api: ApiConfig = field(default_factory=ApiConfig)
+
+
+def _apply_env_overrides(settings: Settings) -> Settings:
+    """Override config values with environment variables if set."""
+    env_map = {
+        "EMBED_MODEL": (settings.embedding, "model"),
+        "EMBED_DIM": (settings.embedding, "dimension"),
+        "QDRANT_HOST": (settings.qdrant, "host"),
+        "QDRANT_PORT": (settings.qdrant, "port"),
+        "CHUNK_SIZE": (settings.chunking, "size"),
+        "CHUNK_OVERLAP": (settings.chunking, "overlap"),
+        "TOP_K": (settings.search, "top_k"),
+        "API_HOST": (settings.api, "host"),
+        "API_PORT": (settings.api, "port"),
+    }
+    for env_key, (obj, attr) in env_map.items():
+        val = os.getenv(env_key)
+        if val is not None:
+            current = getattr(obj, attr)
+            setattr(obj, attr, type(current)(val))
+    return settings
+
+
+def load_config() -> Settings:
+    """Load config from file, apply env overrides, return Settings."""
+    settings = Settings()
+
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE) as f:
+                data = json.load(f)
+            if "embedding" in data:
+                for k, v in data["embedding"].items():
+                    if hasattr(settings.embedding, k):
+                        setattr(settings.embedding, k, v)
+            if "qdrant" in data:
+                for k, v in data["qdrant"].items():
+                    if hasattr(settings.qdrant, k):
+                        setattr(settings.qdrant, k, v)
+            if "chunking" in data:
+                for k, v in data["chunking"].items():
+                    if hasattr(settings.chunking, k):
+                        setattr(settings.chunking, k, v)
+            if "search" in data:
+                for k, v in data["search"].items():
+                    if hasattr(settings.search, k):
+                        setattr(settings.search, k, v)
+            if "api" in data:
+                for k, v in data["api"].items():
+                    if hasattr(settings.api, k):
+                        setattr(settings.api, k, v)
+        except (json.JSONDecodeError, OSError):
+            pass  # Fall back to defaults
+
+    return _apply_env_overrides(settings)
+
+
+def generate_config() -> dict:
+    """Generate default config as a dict (for writing to file)."""
+    return asdict(Settings())
+
+
+# Singleton
+settings = load_config()
+
+# Backward-compatible module-level constants
 EXTRACTED_DIR = os.path.join(BASE_DIR, "data", "extracted")
 CHUNKS_FILE = os.path.join(BASE_DIR, "data", "chunks", "chunks.json")
 METADATA_FILE = os.path.join(BASE_DIR, "data", "metadata", "metadata.json")
 QDRANT_PATH = os.path.join(BASE_DIR, "vector_db", "qdrant")
 
-EMBED_MODEL = os.getenv("EMBED_MODEL", "intfloat/multilingual-e5-small")
-EMBED_DIM = int(os.getenv("EMBED_DIM", "384"))
+EMBED_MODEL = settings.embedding.model
+EMBED_DIM = settings.embedding.dimension
 
-QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
-QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
+QDRANT_HOST = settings.qdrant.host
+QDRANT_PORT = settings.qdrant.port
 
-CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "384"))
-CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
-TOP_K = int(os.getenv("TOP_K", "8"))
+CHUNK_SIZE = settings.chunking.size
+CHUNK_OVERLAP = settings.chunking.overlap
+TOP_K = settings.search.top_k
 
-API_HOST = os.getenv("API_HOST", "0.0.0.0")
-API_PORT = int(os.getenv("API_PORT", "8000"))
+API_HOST = settings.api.host
+API_PORT = settings.api.port
