@@ -1,11 +1,11 @@
-# Implementation Plan: Make pdf-rag Easy to Install + Universal AI Integration
+# Implementation Plan: Docker + MCP Integration
 
 **Goal**
 1. One-command setup via Docker Compose
 2. Works with any AI tool (Claude Desktop, Cursor, Windsurf, Cline, OpenCode)
 3. Document everything so users know exactly how to connect
 
-## Phase 1: Docker Compose (Improvement #16 from roadmap)
+## Phase 1: Docker Compose
 
 **Files to create/modify:**
 
@@ -13,8 +13,8 @@
 |------|--------|---------|
 | `Dockerfile` | CREATE | Python 3.12 slim image, install deps, copy source |
 | `docker-compose.yml` | CREATE | Qdrant + pdf-rag services, one-command start |
-| `Makefile` | MODIFY | Add docker-up, docker-down, docker-ingest targets |
-| `README.md` | MODIFY | Add "Quick Start with Docker" section at top |
+| `Makefile` | MODIFY | Add docker-up, docker-down targets |
+| `README.md` | MODIFY | Add "Quick Start with Docker" section |
 
 **Dockerfile design:**
 ```dockerfile
@@ -37,7 +37,6 @@ services:
     build: .
     depends_on: [qdrant]
     volumes:
-      - ./books:/app/books
       - ./data:/app/data
     environment:
       - QDRANT_HOST=qdrant
@@ -49,10 +48,8 @@ services:
 ```bash
 git clone https://github.com/erykjarocki/pdf-rag
 cd pdf-rag
-docker compose up -d                    # start Qdrant
-cp ~/books/*.pdf books/
-docker compose run pdf-rag python src/ingest.py   # index
-docker compose run pdf-rag python src/mcp_server.py  # MCP server
+docker compose up -d                    # start everything
+docker compose run pdf-rag python src/ingest.py /path/to/doc.pdf  # index
 ```
 
 ## Phase 2: MCP Config for Every AI Tool
@@ -71,39 +68,15 @@ Contains copy-paste config for each tool:
 
 Key insight: All these tools use the same MCP protocol. The config format is nearly identical — just the file path differs.
 
-Also add: A `--transport stdio` vs `--transport sse` option to the MCP server, since some tools prefer SSE (HTTP) transport.
-
 ## Phase 3: README Overhaul
 
-Current README is good but developer-focused. Restructure for three audiences:
+Restructure for three audiences:
 
 1. **Quick Start (Docker)** — copy 3 commands, done
 2. **AI Tool Integration** — link to `docs/mcp-setup.md`, show one example
 3. **Developer Setup** — current content (Makefile, venv, etc.)
 
-Add to top of README:
-```markdown
-## Quick Start
-
-# 1. Clone and start
-git clone ... && cd pdf-rag
-docker compose up -d
-
-# 2. Add your PDFs
-cp ~/Documents/*.pdf books/
-
-# 3. Index
-docker compose run pdf-rag python src/ingest.py
-
-# 4. Connect your AI tool (pick one)
-# Claude Desktop: add to ~/.claude/claude_desktop_config.json
-# Cursor: add to .cursor/mcp.json
-# See docs/mcp-setup.md for all tools
-```
-
-## Phase 4: Enhance MCP Server (Optional but high value)
-
-**File to modify:** `src/mcp_server.py`
+## Phase 4: Enhance MCP Server (Optional)
 
 Add tools that make the system more useful:
 
@@ -125,8 +98,6 @@ These tools let AI agents do more than just search — they can explore the know
 | 3 | `README.md` (major rewrite) |
 | 4 | `src/mcp_server.py` (add 4 tools) |
 
-**Total estimated effort:** 3-4 hours
-
 ## What NOT to Do
 
 | Skip | Why |
@@ -140,6 +111,6 @@ These tools let AI agents do more than just search — they can explore the know
 
 After this plan is executed:
 1. `docker compose up -d` starts everything
-2. A user can copy-paste MCP config into Claude Desktop and start querying PDFs in < 5 minutes
+2. A user can copy-paste MCP config into Claude Desktop and start querying documents in < 5 minutes
 3. README clearly explains the value proposition in 3 sentences
 4. Each AI tool's setup is documented with exact file paths and JSON

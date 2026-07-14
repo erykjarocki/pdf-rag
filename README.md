@@ -1,14 +1,14 @@
 # PDF-RAG
 
-Local RAG system for PDF documents — chat with your books, articles, or any PDF via AI.
+Local RAG system for documents — chat with PDFs, text files, markdown, source code, or any document via AI.
 
-Ask questions, get answers based **only on your PDF content**, with citations (book, chapter, page).
+Ask questions, get answers based **only on your document content**, with citations.
 
 ## How it works
 
 ```
-PDF → text extraction → chunks → embeddings (local) → Qdrant (vector DB)
-                                                          ↓
+Document → text extraction → chunks → embeddings (local) → Qdrant (vector DB)
+                                                              ↓
 OpenCode (MCP) ← search_book_tool ← retriever ← similarity search
     ↓
 LLM answers based on found fragments
@@ -16,8 +16,8 @@ LLM answers based on found fragments
 
 - **100% local** — no data leaves your machine
 - **OpenCode integration** — works as an MCP tool
-- **Any PDF** — books, papers, manuals, your notes
-- **Always cites sources** — book/chapter/page
+- **Any document** — PDFs, markdown, source code, text files
+- **Always cites sources** — document/chapter/page
 
 ## Quick start
 
@@ -30,133 +30,114 @@ LLM answers based on found fragments
 ### Setup
 
 ```bash
-# 1. Clone
+# Clone
 git clone git@github.com:erykjarocki/pdf-rag.git
 cd pdf-rag
 
-# 2. Setup (creates venv + installs everything)
+# One command — installs everything, starts Qdrant, prints OpenCode config
 make setup
-source venv/bin/activate
-
-# 3. Start Qdrant (Docker) — first time
-make qdrant
-
-# 4. Copy your PDFs
-cp /path/to/your/files/*.pdf books/
-
-# 5. Index everything
-make ingest
-
-# 6. Run MCP server (standalone test)
-make mcp
 ```
 
-### Day-to-day usage
+Then add the printed config snippet to `~/.config/opencode/opencode.json` and restart OpenCode.
+
+**That's it.** Ask OpenCode to ingest and search your documents.
+
+### Ingesting documents
+
+```bash
+# Via OpenCode — just ask:
+# "Ingest /path/to/document.pdf"
+# "Ingest all files in /path/to/documents/"
+
+# Via API
+curl -X POST localhost:8000/ingest -F "file=@document.pdf"
+curl -X POST localhost:8000/ingest-folder -H "Content-Type: application/json" \
+  -d '{"directory": "/path/to/documents"}'
+
+# Via CLI
+python src/ingest.py /path/to/document.pdf
+python src/ingest.py --folder /path/to/documents/
+```
+
+### Day-to-day
 
 ```bash
 # Start Qdrant (if stopped)
 make start
 
-# Index new PDFs or re-index
-make ingest
-
-# Re-index a specific book
-make ingest ARGS="--reindex tom1"
-
-# List indexed books
-make ingest ARGS="--list"
-
-# Run API server
+# Run API server (optional)
 make serve
 
-# Run MCP server
+# Run MCP server (standalone test)
 make mcp
-
-# Lint & format
-make lint
-make fmt
-make lint ARGS="--fix"   # auto-fix issues
 ```
 
-### All commands
+## Supported formats
 
-```
-make setup      # First-time setup (venv + install)
-make install    # Reinstall package
-make qdrant     # Start Qdrant (first time)
-make start      # Start Qdrant (stopped container)
-make stop       # Stop Qdrant
-make ingest     # Index PDFs
-make serve      # Run REST API
-make mcp        # Run MCP server
-make lint       # Lint with ruff
-make fmt        # Format with ruff
-make docs       # Build documentation to site/
-make docs-serve # Serve docs locally at localhost:8000
-make clean      # Remove __pycache__
-```
+| Format | Extensions | Sections detected |
+|--------|-----------|-------------------|
+| PDF | `.pdf` | Chapter detection (TOC → font analysis → regex) |
+| Markdown | `.md`, `.markdown` | `#` headings |
+| Source code | `.py`, `.js`, `.ts`, `.rs`, `.go`, `.java`, etc. | Functions, classes |
+| Plain text | `.txt`, `.log`, `.csv` | None (single section) |
+
+40+ extensions supported. See `src/adapters.py` for the full list.
 
 ## OpenCode integration
 
-Add to your OpenCode config (`~/.config/opencode/opencode.json`):
+`make setup` prints the config automatically. If you need to add it manually:
 
 ```json
 "pdf-rag": {
   "type": "local",
-  "command": [
-    "/path/to/pdf-rag/venv/bin/python",
-    "/path/to/pdf-rag/src/mcp_server.py"
-  ],
+  "command": ["/path/to/pdf-rag/venv/bin/python", "-m", "src.mcp_server"],
+  "cwd": "/path/to/pdf-rag",
   "enabled": true
 }
 ```
 
-Then OpenCode automatically uses `search_book_tool` when you ask about your PDFs.
-
-## Usage
-
-### Index books
-```bash
-# Index all PDFs (each becomes its own collection)
-make ingest
-
-# Re-index a specific book
-make ingest ARGS="--reindex tom1"
-
-# Delete a book from the knowledge base
-make ingest ARGS="--delete tom1"
-
-# List indexed books
-make ingest ARGS="--list"
-```
-
 ### MCP tools
 
-- `search_book_tool(question, book=None)` — search all books or filter by name
+- `search_book_tool(question, book=None)` — search all documents or filter by name
 - `search_book_raw(question, book=None)` — returns JSON with scores
-- `list_books_tool()` — list available books
+- `list_books_tool()` — list available documents
+- `ingest_document(file_path, reindex=False)` — ingest a single file
+- `ingest_folder(directory, reindex=False)` — ingest all supported files in a directory
+
+## API
+
+Base URL: `http://localhost:8000`
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/query` | POST | Search the knowledge base |
+| `/ingest` | POST | Ingest a file (upload or path) |
+| `/ingest-folder` | POST | Ingest all files in a directory |
+| `/collections` | GET | List indexed collections |
+| `/formats` | GET | List supported file formats |
+| `/health` | GET | Health check |
 
 ## Project structure
 
 ```
 pdf-rag/
-├── books/              # Place your PDFs here
 ├── data/
-│   ├── extracted/      # Raw text from PDFs
+│   ├── extracted/      # Raw text from documents
 │   ├── chunks/         # Processed chunks
 │   └── metadata/       # Index metadata
 ├── vector_db/qdrant/   # Qdrant storage
 ├── src/
 │   ├── config.py       # Configuration
-│   ├── ingest.py       # PDF → Qdrant pipeline
+│   ├── adapters.py     # Format adapters (PDF, MD, code, text)
+│   ├── ingest.py       # Document → Qdrant pipeline
 │   ├── embeddings.py   # Local embedding model
 │   ├── retriever.py    # search_book() function
 │   ├── mcp_server.py   # MCP server for OpenCode
-│   ├── api.py          # REST API (optional)
+│   ├── api.py          # REST API
 │   └── qdrant_store.py # Qdrant client helpers
 ├── venv/
-├── pyproject.toml      # Project config & dependencies
-├── Makefile            # Quick commands
+├── pyproject.toml
+├── Makefile
 └── README.md
 ```
 
@@ -171,41 +152,17 @@ pdf-rag/
 
 The default model is `intfloat/multilingual-e5-small` (384 dim) — fast, local, handles Polish well.
 
-To upgrade or switch:
-
 ```bash
-# 1. Edit src/config.py:
+# Edit src/config.py:
 #    EMBED_MODEL = "intfloat/multilingual-e5-large"
-#    EMBED_DIM = 1024   # must match the model's dimension
+#    EMBED_DIM = 1024
 
-# 2. Re-index (old collections are replaced automatically)
-make ingest ARGS="--reindex investor-tom1"
+# Re-index existing collections
+python src/ingest.py /path/to/file.pdf --reindex
 ```
-
-**Model options** (full list on [huggingface.co/intfloat](https://huggingface.co/intfloat)):
 
 | Model | Dimensions | Quality | Speed |
 |---|---|---|---|
 | `multilingual-e5-small` | 384 | good | fast |
 | `multilingual-e5-base` | 768 | better | medium |
 | `multilingual-e5-large` | 1024 | best | slow |
-
-After changing the model you **must reindex** — old embeddings use a different dimension.
-
-## Adding more documents
-
-```bash
-# Add a new PDF — just copy and index
-cp ~/Downloads/new-book.pdf books/
-make ingest
-# → new collection created, existing ones untouched
-
-# Re-index a specific book
-make ingest ARGS="--reindex tom1"
-
-# Remove a book
-make ingest ARGS="--delete tom3"
-
-# See what's indexed
-make ingest ARGS="--list"
-```

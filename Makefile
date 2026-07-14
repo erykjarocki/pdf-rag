@@ -1,4 +1,4 @@
-.PHONY: setup install ingest serve mcp qdrant start stop clean lint fmt docs docs-serve test test-unit test-integration
+.PHONY: setup install serve mcp qdrant start stop clean lint fmt docs docs-serve test test-unit test-integration
 
 PY = venv/bin/python
 PIP = venv/bin/pip
@@ -6,11 +6,31 @@ MKDOCS = venv/bin/mkdocs
 RUFF = venv/bin/ruff
 PYTEST = venv/bin/pytest
 
-# Setup (first time)
+# Setup (first time) — one command to get started
 setup:
 	python3 -m venv venv
 	$(PIP) install -e ".[dev]"
-	@echo "\n✅ Done. Run commands via 'make <cmd>'"
+	@echo ""
+	@echo "=== Starting Qdrant ==="
+	@if docker ps -a --format '{{.Names}}' | grep -q '^qdrant$$'; then \
+		docker start qdrant 2>/dev/null && echo "Qdrant started." || echo "Qdrant already running."; \
+	else \
+		docker run -d --name qdrant -p 6333:6333 \
+			-v $(PWD)/vector_db/qdrant:/qdrant/storage \
+			qdrant/qdrant && echo "Qdrant started." || echo "Docker not available — start Qdrant manually."; \
+	fi
+	@echo ""
+	@echo "=== OpenCode Integration ==="
+	@echo "Add this to ~/.config/opencode/opencode.json:"
+	@echo ""
+	@echo '  "pdf-rag": {'
+	@echo '    "type": "local",'
+	@echo '    "command": ["$(PWD)/venv/bin/python", "-m", "src.mcp_server"],'
+	@echo '    "cwd": "$(PWD)",'
+	@echo '    "enabled": true'
+	@echo '  }'
+	@echo ""
+	@echo "✅ Done! Restart OpenCode, then ask it to ingest documents."
 
 install:
 	$(PIP) install -e ".[dev]"
@@ -22,15 +42,12 @@ qdrant:
 		qdrant/qdrant
 
 start:
-	docker start qdrant
+	@docker start qdrant 2>/dev/null || echo "Qdrant not found. Run 'make qdrant' first."
 
 stop:
 	docker stop qdrant
 
-# PDF pipeline
-ingest:
-	$(PY) src/ingest.py $(ARGS)
-
+# Servers
 serve:
 	$(PY) src/api.py
 

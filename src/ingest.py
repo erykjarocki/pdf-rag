@@ -7,11 +7,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.chapter_detection import ChapterDetector
+from src.adapters import get_adapter, section_for_position, supported_extensions
 from src.chunking import chunk_text
-from src.config import BOOKS_DIR, EXTRACTED_DIR
+from src.config import EXTRACTED_DIR
 from src.embeddings import embed
-from src.extraction import extract_pdf, get_full_text_with_page_info
 from src.qdrant_store import (
     delete_collection,
     ensure_collection,
@@ -21,70 +20,72 @@ from src.qdrant_store import (
 from src.utils import collection_name
 
 
-def process_book(pdf_path: str) -> dict:
-    """Extract, chunk, and annotate a single PDF book.
+def process_document(file_path: str) -> dict:
+    """Extract, chunk, and annotate any supported document format.
 
-    Reads the PDF, splits into chunks with page tracking, detects chapter
-    headings via structural metadata (TOC, font analysis) or regex fallback,
-    and saves raw extracted text to disk.
+    Uses the adapter pattern to handle PDF, text, Markdown, and code files
+    through a unified pipeline.
 
     Args:
-        pdf_path: Path to the PDF file.
+        file_path: Path to any supported document file.
 
     Returns:
         Dict with 'book' name, 'chunks' list, and 'total_pages' count.
     """
-    book_name = os.path.splitext(os.path.basename(pdf_path))[0]
-    print(f"  Processing: {book_name}")
+    adapter = get_adapter(file_path)
+    doc = adapter.extract(file_path)
+    print(f"  Processing: {doc.name} ({adapter.format_name})")
+    print(
+        f"    Sections: {len(doc.sections)}, text length: {len(doc.full_text)} chars"
+    )
 
-    pages_data = extract_pdf(pdf_path)
-    full_text, page_boundaries = get_full_text_with_page_info(pages_data)
-    page_nums = [p["page_num"] for p in pages_data]
+    chunks = chunk_text(doc.full_text, doc.page_boundaries, doc.page_nums)
 
-    print(f"    Pages: {len(pages_data)}, text length: {len(full_text)} chars")
+    result_chunks = []
+    for chunk in chunks:
+        chapter = section_for_position(doc.sections, 0, doc.full_text)
+        char_offset = doc.full_text.find(chunk["text"][:50])
+        if char_offset >= 0:
+            chapter = section_for_position(doc.sections, char_offset, doc.full_text)
 
-    chunks = chunk_text(full_text, page_boundaries, page_nums)
+        result_chunks.append(
+            {
+                "text": chunk["text"],
+                "book": doc.name,
+                "chapter": chapter or "unknown",
+                "start_page": chunk["start_page"],
+                "end_page": chunk["end_page"],
+            }
+        )
 
-    with ChapterDetector(pdf_path) as detector:
-        strategy = detector.detect_strategy()
-        print(f"    Chapter detection: {strategy} strategy")
-
-        result_chunks = []
-        for chunk in chunks:
-            chapter = detector.get_chapter_for_page(chunk["start_page"])
-            result_chunks.append(
-                {
-                    "text": chunk["text"],
-                    "book": book_name,
-                    "chapter": chapter or "unknown",
-                    "start_page": chunk["start_page"],
-                    "end_page": chunk["end_page"],
-                }
-            )
-
-    extracted_path = os.path.join(EXTRACTED_DIR, f"{book_name}.txt")
     os.makedirs(EXTRACTED_DIR, exist_ok=True)
+    extracted_path = os.path.join(EXTRACTED_DIR, f"{doc.name}.txt")
     with open(extracted_path, "w", encoding="utf-8") as f:
-        f.write(full_text)
+        f.write(doc.full_text)
 
+    total_pages = len(doc.page_nums)
     print(f"    Chunks created: {len(result_chunks)}")
-    return {"book": book_name, "chunks": result_chunks, "total_pages": len(pages_data)}
+    return {"book": doc.name, "chunks": result_chunks, "total_pages": total_pages}
 
 
-def index_book(pdf_path: str, reindex: bool = False):
-    """Process a PDF and upsert its chunks into a Qdrant collection.
+process_book = process_document
 
-    Creates the collection if needed, generates embeddings for all chunks,
-    and stores them in batches of 500.
+
+def index_document(file_path: str, reindex: bool = False) -> dict:
+    """Process a document and upsert its chunks into a Qdrant collection.
+
+    Works with any format supported by the adapter system.
 
     Args:
-        pdf_path: Path to the PDF file.
+        file_path: Path to any supported document file.
         reindex: If True, delete existing collection before re-indexing.
 
     Returns:
-        Dict with 'book', 'chunks', and 'total_pages' from process_book().
+        Dict with 'book', 'chunks', and 'total_pages' from process_document().
     """
-    book_name = os.path.splitext(os.path.basename(pdf_path))[0]
+    adapter = get_adapter(file_path)
+    doc = adapter.extract(file_path)
+    book_name = doc.name
     coll = collection_name(book_name)
 
     qdrant = get_qdrant_client()
@@ -95,7 +96,7 @@ def index_book(pdf_path: str, reindex: bool = False):
 
     ensure_collection(coll, qdrant)
 
-    result = process_book(pdf_path)
+    result = process_document(file_path)
     chunks = result["chunks"]
 
     if not chunks:
@@ -136,82 +137,83 @@ def index_book(pdf_path: str, reindex: bool = False):
     return result
 
 
-def ingest_all(reindex: str | None = None, book: str | None = None):
-    """Index PDFs in the books/ directory.
+index_book = index_document
 
-    Skips already-indexed books unless reindex is specified.
-    Can target a specific book with the book parameter.
+
+def ingest_folder(directory: str, reindex: bool = False) -> list[dict]:
+    """Index all supported documents from a directory.
+
+    Scans the directory for files with supported extensions and indexes each.
+    Skips already-indexed documents unless reindex is True.
 
     Args:
-        reindex: If provided, only re-index this specific book name.
-        book: If provided, only index this specific book name.
+        directory: Path to directory containing documents.
+        reindex: If True, re-index all documents (delete + re-create collections).
+
+    Returns:
+        List of result dicts with 'name', 'status', and optional 'chunks'/'error'.
     """
-    pdf_files = sorted(glob.glob(os.path.join(BOOKS_DIR, "*.pdf")))
-    if not pdf_files:
-        print("No PDF files found in books/ directory.")
-        return
+    if not os.path.isdir(directory):
+        raise NotADirectoryError(f"Not a directory: {directory}")
+
+    all_files: list[str] = []
+    for ext in supported_extensions():
+        all_files.extend(glob.glob(os.path.join(directory, f"*{ext}")))
+    all_files.sort()
+
+    if not all_files:
+        print(f"No supported files found in {directory}/")
+        return []
 
     qdrant = get_qdrant_client()
+    existing = set(list_collections(qdrant))
+    results = []
 
-    if reindex:
-        pdf_path = os.path.join(BOOKS_DIR, f"{reindex}.pdf")
-        if not os.path.exists(pdf_path):
-            possible = [os.path.splitext(os.path.basename(p))[0] for p in pdf_files]
-            print(f"Book '{reindex}' not found. Available: {possible}")
-            return
-        print(f"Re-indexing: {reindex}")
-        index_book(pdf_path, reindex=True)
-        return
+    for file_path in all_files:
+        doc_name = os.path.splitext(os.path.basename(file_path))[0]
+        coll = collection_name(doc_name)
 
-    if book:
-        pdf_path = os.path.join(BOOKS_DIR, f"{book}.pdf")
-        if not os.path.exists(pdf_path):
-            possible = [os.path.splitext(os.path.basename(p))[0] for p in pdf_files]
-            print(f"Book '{book}' not found. Available: {possible}")
-            return
-        coll = collection_name(book)
-        existing = list_collections(qdrant)
-        if coll in existing:
-            print(f"Book '{book}' is already indexed. Use --reindex to re-index.")
-            return
-        print(f"Indexing: {book}")
-        index_book(pdf_path, reindex=False)
-        return
-
-    existing_collections = set(list_collections(qdrant))
-
-    all_results = []
-    for pdf_path in pdf_files:
-        book_name = os.path.splitext(os.path.basename(pdf_path))[0]
-        coll = collection_name(book_name)
-        if coll in existing_collections:
-            print(f"\nSkipping: {os.path.basename(pdf_path)} (already indexed)")
+        if not reindex and coll in existing:
+            print(f"Skipping: {os.path.basename(file_path)} (already indexed)")
+            results.append({"name": doc_name, "status": "skipped"})
             continue
-        print(f"\nIndexing: {os.path.basename(pdf_path)}")
-        result = index_book(pdf_path, reindex=False)
-        all_results.append(result)
 
-    total = sum(r["total_pages"] for r in all_results)
-    print(f"\nDone! Processed {len(all_results)} books, {total} total pages.")
+        try:
+            print(f"\nIndexing: {os.path.basename(file_path)}")
+            result = index_document(file_path, reindex=reindex)
+            results.append({
+                "name": doc_name,
+                "status": "indexed",
+                "chunks": len(result["chunks"]),
+            })
+        except Exception as e:
+            print(f"  Error: {e}")
+            results.append({"name": doc_name, "status": "error", "error": str(e)})
+
+    indexed = sum(1 for r in results if r["status"] == "indexed")
+    skipped = sum(1 for r in results if r["status"] == "skipped")
+    errors = sum(1 for r in results if r["status"] == "error")
+    print(f"\nDone! Indexed: {indexed}, Skipped: {skipped}, Errors: {errors}")
+    return results
 
 
 def delete_book(book_name: str):
-    """Delete a book's collection from the Qdrant knowledge base.
+    """Delete a document's collection from the Qdrant knowledge base.
 
     Args:
-        book_name: Name of the book to remove (filename without extension).
+        book_name: Name of the document to remove (filename without extension).
     """
     coll = collection_name(book_name)
     qdrant = get_qdrant_client()
     collections = list_collections(qdrant)
 
     if coll not in collections:
-        possible = [c for c in collections if c != "_point_vector"]  # skip internal
+        possible = [c for c in collections if c != "_point_vector"]
         print(f"Collection '{coll}' not found. Available: {possible}")
         return
 
     delete_collection(coll, qdrant)
-    print(f"Book '{book_name}' removed from knowledge base.")
+    print(f"Document '{book_name}' removed from knowledge base.")
 
 
 def list_books():
@@ -219,9 +221,9 @@ def list_books():
     qdrant = get_qdrant_client()
     collections = list_collections(qdrant)
     if not collections:
-        print("No books in the knowledge base.")
+        print("No documents in the knowledge base.")
         return
-    print("Books in knowledge base:")
+    print("Documents in knowledge base:")
     for c in sorted(collections):
         count_result = qdrant.count(collection_name=c, exact=True)
         total = count_result.count if hasattr(count_result, "count") else 0
@@ -230,13 +232,14 @@ def list_books():
 
 def main():
     parser = argparse.ArgumentParser(description="PDF-RAG ingestion pipeline")
-    parser.add_argument("--reindex", type=str, help="Re-index a specific book by name")
-    parser.add_argument("--book", type=str, help="Index a specific book by name")
+    parser.add_argument("file", nargs="?", help="Path to a document file to index")
+    parser.add_argument("--reindex", action="store_true", help="Re-index the given file")
+    parser.add_argument("--folder", type=str, help="Index all supported files in a directory")
     parser.add_argument(
-        "--delete", type=str, help="Delete a book from the knowledge base"
+        "--delete", type=str, help="Delete a document from the knowledge base"
     )
     parser.add_argument(
-        "--list", action="store_true", help="List all books in the knowledge base"
+        "--list", action="store_true", help="List all documents in the knowledge base"
     )
     args = parser.parse_args()
 
@@ -244,8 +247,15 @@ def main():
         list_books()
     elif args.delete:
         delete_book(args.delete)
+    elif args.folder:
+        ingest_folder(args.folder, reindex=args.reindex)
+    elif args.file:
+        if not os.path.exists(args.file):
+            print(f"Error: File not found: {args.file}")
+            sys.exit(1)
+        index_document(args.file, reindex=args.reindex)
     else:
-        ingest_all(reindex=args.reindex, book=args.book)
+        parser.print_help()
 
 
 if __name__ == "__main__":

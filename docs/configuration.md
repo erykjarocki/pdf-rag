@@ -9,7 +9,6 @@ All configuration lives in `src/config.py`.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `BASE_DIR` | Project root | Auto-detected from file location |
-| `BOOKS_DIR` | `books/` | Directory containing PDF files |
 | `EXTRACTED_DIR` | `data/extracted/` | Where raw extracted text is saved (.txt) |
 | `CHUNKS_FILE` | `data/chunks/chunks.json` | Reserved for cached chunks (not yet used) |
 | `METADATA_FILE` | `data/metadata/metadata.json` | Reserved for index metadata (not yet used) |
@@ -44,6 +43,21 @@ All configuration lives in `src/config.py`.
 
 ---
 
+## Supported Formats
+
+The system supports 40+ file formats via adapters:
+
+| Format | Extensions | Sections detected |
+|--------|-----------|-------------------|
+| PDF | `.pdf` | Chapter detection (TOC → font analysis → regex) |
+| Markdown | `.md`, `.markdown` | `#` headings |
+| Source code | `.py`, `.js`, `.ts`, `.rs`, `.go`, `.java`, etc. | Functions, classes |
+| Plain text | `.txt`, `.log`, `.csv`, `.json`, `.xml`, etc. | None (single section) |
+
+See `src/adapters.py` for the complete list of supported extensions.
+
+---
+
 ## Changing the Embedding Model
 
 Edit `src/config.py`:
@@ -55,20 +69,11 @@ EMBED_MODEL = "intfloat/multilingual-e5-large"
 EMBED_DIM = 1024  # Must match the model's output dimension
 ```
 
-Then **re-index all books** (old collections have wrong dimensions):
+Then **re-index all documents** (old collections have wrong dimensions):
 
 ```bash
-python src/ingest.py --reindex investor-tom1
-python src/ingest.py --reindex investor-tom2
-python src/ingest.py --reindex investor-tom3
-python src/ingest.py --reindex investor-tom4
-```
-
-Or delete and re-index all:
-
-```bash
-python src/ingest.py --delete investor-tom1
-python src/ingest.py  # re-indexes all
+python src/ingest.py /path/to/document.pdf --reindex
+python src/ingest.py --folder /path/to/documents/ --reindex
 ```
 
 ---
@@ -83,10 +88,12 @@ docker run -d --name qdrant -p 6333:6333 \
   qdrant/qdrant
 ```
 
+Or use `make setup` which handles this automatically.
+
 ### Subsequent starts
 
 ```bash
-docker start qdrant
+make start
 ```
 
 ### Check status
@@ -107,4 +114,4 @@ CHUNK_SIZE = 200   # Smaller chunks for more precise retrieval
 CHUNK_OVERLAP = 30 # Proportionally reduce overlap
 ```
 
-After changing, re-index affected books.
+After changing, re-index affected documents.

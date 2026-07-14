@@ -4,9 +4,6 @@ __pycache__/
 *.egg-info/
 .DS_Store
 
-# PDF files (copyrighted content)
-books/
-
 # Generated data
 data/extracted/*
 data/chunks/*

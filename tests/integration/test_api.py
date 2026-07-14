@@ -72,3 +72,43 @@ class TestBooksEndpoint:
 
         response = client.delete("/books/nonexistent")
         assert response.status_code == 404
+
+
+@pytest.mark.integration
+class TestIngestFolderEndpoint:
+    @patch("src.api.ingest_folder")
+    @patch("src.api.os.path.isdir", return_value=True)
+    def test_ingest_folder_returns_results(self, mock_isdir, mock_ingest, client):
+        mock_ingest.return_value = [
+            {"name": "doc1", "status": "indexed", "chunks": 10},
+            {"name": "doc2", "status": "skipped"},
+        ]
+        response = client.post(
+            "/ingest-folder",
+            json={"directory": "/tmp/test-docs"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_indexed"] == 1
+        assert data["total_skipped"] == 1
+        assert len(data["results"]) == 2
+
+    def test_ingest_folder_invalid_directory(self, client):
+        response = client.post(
+            "/ingest-folder",
+            json={"directory": "/nonexistent/path"},
+        )
+        assert response.status_code == 400
+
+    @patch("src.api.ingest_folder")
+    @patch("src.api.os.path.isdir", return_value=True)
+    def test_ingest_folder_with_reindex(self, mock_isdir, mock_ingest, client):
+        mock_ingest.return_value = [
+            {"name": "doc1", "status": "indexed", "chunks": 5},
+        ]
+        response = client.post(
+            "/ingest-folder",
+            json={"directory": "/tmp/test-docs", "reindex": True},
+        )
+        assert response.status_code == 200
+        mock_ingest.assert_called_once_with("/tmp/test-docs", reindex=True)

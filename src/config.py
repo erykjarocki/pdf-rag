@@ -2,7 +2,6 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-BOOKS_DIR = os.path.join(BASE_DIR, "books")
 EXTRACTED_DIR = os.path.join(BASE_DIR, "data", "extracted")
 CHUNKS_FILE = os.path.join(BASE_DIR, "data", "chunks", "chunks.json")
 METADATA_FILE = os.path.join(BASE_DIR, "data", "metadata", "metadata.json")
