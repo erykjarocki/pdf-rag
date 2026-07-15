@@ -141,7 +141,8 @@ def pytest_sessionfinish(session, exitstatus):
 
     # Two-stage comparison if both stages present
     if rerank_results:
-        m_before = (
+        m_before = _compute_metrics(rerank_results)
+        m_after = (
             _compute_metrics(results)
             if results
             else {
@@ -149,7 +150,6 @@ def pytest_sessionfinish(session, exitstatus):
                 "mrr": 0, "recall_at_4": 0, "precision_at_4": 0,
             }
         )
-        m_after = _compute_metrics(rerank_results)
         terminal.write("\n")
         terminal.write("=" * 70 + "\n")
         terminal.write(
@@ -186,8 +186,8 @@ def pytest_sessionfinish(session, exitstatus):
         report["rerank_queries"] = rerank_results
         report["rerank_metrics"] = _compute_metrics(rerank_results)
         report["pipeline_comparison"] = {
-            "before": _compute_metrics(results) if results else {},
-            "after": _compute_metrics(rerank_results),
+            "before": _compute_metrics(rerank_results),
+            "after": _compute_metrics(results) if results else {},
         }
 
     rerank_detail = getattr(session, "rerank_detail", [])

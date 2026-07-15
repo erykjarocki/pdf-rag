@@ -18,15 +18,6 @@ _bi_cache = {}  # query -> list[dict] (up to RERANK_TOP_N results)
 _ce_cache = {}  # query -> SearchResult (with .fragments and .trace)
 
 
-def _bi(query, top_k=8):
-    """Get bi-encoder results for a query (cached, top_k=20 stored)."""
-    if query not in _bi_cache:
-        _bi_cache[query] = search_book(
-            query, book=BOOK, rerank=False, top_k=RERANK_TOP_N
-        )
-    return _bi_cache[query][:top_k]
-
-
 def _bi_all(query):
     """Get all bi-encoder candidates (cached, up to RERANK_TOP_N)."""
     if query not in _bi_cache:
@@ -187,110 +178,6 @@ class TestFormattedOutput:
 
 
 # ---------------------------------------------------------------------------
-# Bi-Encoder Metric Tests (cached: 80 queries searched once)
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.eval
-class TestRetrievalMetrics:
-    """Evaluate retrieval quality on answerable queries only."""
-
-    def test_recall_at_2(self, request, benchmark_indexed_qdrant):
-        from tests.eval.conftest import collect_eval_result
-
-        labels = _answerable_labels()
-        recalls = []
-        for item in labels:
-            results = _bi(item["query"])
-            r, _, _ = collect_eval_result(
-                request.session,
-                item["query"],
-                results,
-                item["relevant_documents"],
-                k=2,
-                category=item["category"],
-            )
-            recalls.append(r)
-        avg = sum(recalls) / len(recalls) if recalls else 0
-        print(f"\n  recall@2 = {avg:.2f} (threshold: 0.80)")
-        assert avg >= 0.80, f"Recall@2 = {avg:.2f}, expected >= 0.80"
-
-    def test_recall_at_4(self, request, benchmark_indexed_qdrant):
-        from tests.eval.conftest import _recall_at_k
-
-        labels = _answerable_labels()
-        recalls = []
-        for item in labels:
-            results = _bi(item["query"])
-            recalls.append(
-                _recall_at_k(results, item["relevant_documents"], 4)
-            )
-        avg = sum(recalls) / len(recalls) if recalls else 0
-        print(f"\n  recall@4 = {avg:.2f} (threshold: 0.83)")
-        assert avg >= 0.83, f"Recall@4 = {avg:.2f}, expected >= 0.83"
-
-    def test_precision_at_2(self, request, benchmark_indexed_qdrant):
-        from tests.eval.conftest import collect_eval_result
-
-        labels = _answerable_labels()
-        precisions = []
-        for item in labels:
-            results = _bi(item["query"])
-            _, p, _ = collect_eval_result(
-                request.session,
-                item["query"],
-                results,
-                item["relevant_documents"],
-                k=2,
-                category=item["category"],
-            )
-            precisions.append(p)
-        avg = sum(precisions) / len(precisions) if precisions else 0
-        print(f"\n  precision@2 = {avg:.2f} (threshold: 0.70)")
-        assert avg >= 0.70, (
-            f"Precision@2 = {avg:.2f}, expected >= 0.70"
-        )
-
-    def test_precision_at_4(self, request, benchmark_indexed_qdrant):
-        from tests.eval.conftest import _precision_at_k
-
-        labels = _answerable_labels()
-        precisions = []
-        for item in labels:
-            results = _bi(item["query"])
-            precisions.append(
-                _precision_at_k(
-                    results, item["relevant_documents"], 4
-                )
-            )
-        avg = sum(precisions) / len(precisions) if precisions else 0
-        print(f"\n  precision@4 = {avg:.2f} (threshold: 0.65)")
-        assert avg >= 0.65, (
-            f"Precision@4 = {avg:.2f}, expected >= 0.65"
-        )
-
-    def test_mrr(self, request, benchmark_indexed_qdrant):
-        from tests.eval.conftest import collect_eval_result
-
-        labels = _answerable_labels()
-        rrs = []
-        for item in labels:
-            results = _bi(item["query"])
-            _, _, rr = collect_eval_result(
-                request.session,
-                item["query"],
-                results,
-                item["relevant_documents"],
-                k=2,
-                category=item["category"],
-            )
-            rrs.append(rr)
-        avg = sum(rrs) / len(rrs) if rrs else 0
-        print(f"\n  mrr = {avg:.2f} (threshold: 0.80)")
-        assert avg >= 0.80, f"MRR = {avg:.2f}, expected >= 0.80"
-
-
-# ---------------------------------------------------------------------------
 # Cross-Encoder Quality Tests (uncached, 4 ad-hoc queries)
 # ---------------------------------------------------------------------------
 
@@ -341,133 +228,6 @@ class TestRerankRetrievalQuality:
         )
         assert len(results) > 0
         assert "rerank_score" in results[0]
-
-
-# ---------------------------------------------------------------------------
-# Cross-Encoder Metric Tests (cached: 80 queries searched once)
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.rerank
-class TestRerankMetrics:
-    """Evaluate retrieval quality WITH re-ranking on answerable queries."""
-
-    def test_recall_at_2_reranked(self, request, benchmark_indexed_qdrant):
-        from tests.eval.conftest import collect_eval_result
-
-        labels = _answerable_labels()
-        recalls = []
-        for item in labels:
-            sr = _ce(item["query"])
-            results = sr.fragments
-            r, _, _ = collect_eval_result(
-                request.session,
-                f"{item['query']}_reranked",
-                results,
-                item["relevant_documents"],
-                k=2,
-                category=item["category"],
-            )
-            recalls.append(r)
-        avg = sum(recalls) / len(recalls) if recalls else 0
-        print(
-            f"\n  recall@2 (reranked) = {avg:.2f}"
-            " (threshold: 0.70)"
-        )
-        assert avg >= 0.70, (
-            f"Recall@2 = {avg:.2f}, expected >= 0.70"
-        )
-
-    def test_recall_at_4_reranked(self, request, benchmark_indexed_qdrant):
-        from tests.eval.conftest import _recall_at_k
-
-        labels = _answerable_labels()
-        recalls = []
-        for item in labels:
-            sr = _ce(item["query"])
-            recalls.append(
-                _recall_at_k(
-                    sr.fragments, item["relevant_documents"], 4
-                )
-            )
-        avg = sum(recalls) / len(recalls) if recalls else 0
-        print(
-            f"\n  recall@4 (reranked) = {avg:.2f}"
-            " (threshold: 0.78)"
-        )
-        assert avg >= 0.78, (
-            f"Recall@4 = {avg:.2f}, expected >= 0.78"
-        )
-
-    def test_precision_at_2_reranked(
-        self, request, benchmark_indexed_qdrant
-    ):
-        from tests.eval.conftest import collect_eval_result
-
-        labels = _answerable_labels()
-        precisions = []
-        for item in labels:
-            sr = _ce(item["query"])
-            _, p, _ = collect_eval_result(
-                request.session,
-                f"{item['query']}_reranked",
-                sr.fragments,
-                item["relevant_documents"],
-                k=2,
-                category=item["category"],
-            )
-            precisions.append(p)
-        avg = sum(precisions) / len(precisions) if precisions else 0
-        print(
-            f"\n  precision@2 (reranked) = {avg:.2f}"
-            " (threshold: 0.65)"
-        )
-        assert avg >= 0.65, (
-            f"Precision@2 = {avg:.2f}, expected >= 0.65"
-        )
-
-    def test_precision_at_4_reranked(
-        self, request, benchmark_indexed_qdrant
-    ):
-        from tests.eval.conftest import _precision_at_k
-
-        labels = _answerable_labels()
-        precisions = []
-        for item in labels:
-            sr = _ce(item["query"])
-            precisions.append(
-                _precision_at_k(
-                    sr.fragments, item["relevant_documents"], 4
-                )
-            )
-        avg = sum(precisions) / len(precisions) if precisions else 0
-        print(
-            f"\n  precision@4 (reranked) = {avg:.2f}"
-            " (threshold: 0.60)"
-        )
-        assert avg >= 0.60, (
-            f"Precision@4 = {avg:.2f}, expected >= 0.60"
-        )
-
-    def test_mrr_reranked(self, request, benchmark_indexed_qdrant):
-        from tests.eval.conftest import collect_eval_result
-
-        labels = _answerable_labels()
-        rrs = []
-        for item in labels:
-            sr = _ce(item["query"])
-            _, _, rr = collect_eval_result(
-                request.session,
-                f"{item['query']}_reranked",
-                sr.fragments,
-                item["relevant_documents"],
-                k=2,
-                category=item["category"],
-            )
-            rrs.append(rr)
-        avg = sum(rrs) / len(rrs) if rrs else 0
-        print(f"\n  mrr (reranked) = {avg:.2f} (threshold: 0.75)")
-        assert avg >= 0.75, f"MRR = {avg:.2f}, expected >= 0.75"
 
 
 # ---------------------------------------------------------------------------
@@ -553,7 +313,7 @@ class TestNoAnswerQueries:
 
 
 # ---------------------------------------------------------------------------
-# Two-Stage Pipeline Comparison (reuses bi+ce cache)
+# Two-Stage Pipeline Comparison — the single source of truth for metrics
 # ---------------------------------------------------------------------------
 
 
@@ -637,13 +397,13 @@ class TestPipelineComparison:
             return sum(xs) / len(xs) if xs else 0
 
         m_before = {
-            "recall": avg(recalls_before),
-            "precision": avg(precisions_before),
+            "recall_at_2": avg(recalls_before),
+            "precision_at_2": avg(precisions_before),
             "mrr": avg(rrs_before),
         }
         m_after = {
-            "recall": avg(recalls_after),
-            "precision": avg(precisions_after),
+            "recall_at_2": avg(recalls_after),
+            "precision_at_2": avg(precisions_after),
             "mrr": avg(rrs_after),
         }
 
@@ -657,8 +417,8 @@ class TestPipelineComparison:
         )
         print(f"  {'-' * 49}")
         for key, label in [
-            ("recall", "Recall@2"),
-            ("precision", "Precision@2"),
+            ("recall_at_2", "Recall@2"),
+            ("precision_at_2", "Precision@2"),
             ("mrr", "MRR"),
         ]:
             b, a = m_before[key], m_after[key]
@@ -669,3 +429,22 @@ class TestPipelineComparison:
                 f" {a:>12.2f} {sign}{d:>9.2f}"
             )
         print("=" * 60)
+
+        # Assert bi-encoder baseline
+        assert m_before["recall_at_2"] >= 0.75, (
+            f"Bi-encoder Recall@2 = {m_before['recall_at_2']:.2f}"
+        )
+        assert m_before["mrr"] >= 0.75, (
+            f"Bi-encoder MRR = {m_before['mrr']:.2f}"
+        )
+
+        # Assert reranked results (should be >= bi-encoder)
+        assert m_after["recall_at_2"] >= 0.85, (
+            f"Reranked Recall@2 = {m_after['recall_at_2']:.2f}"
+        )
+        assert m_after["precision_at_2"] >= 0.78, (
+            f"Reranked Precision@2 = {m_after['precision_at_2']:.2f}"
+        )
+        assert m_after["mrr"] >= 0.85, (
+            f"Reranked MRR = {m_after['mrr']:.2f}"
+        )
