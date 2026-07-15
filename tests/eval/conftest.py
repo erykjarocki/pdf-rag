@@ -292,11 +292,21 @@ def collect_rerank_detail(
     for i, r in enumerate(bi_results):
         bi_by_rank[i + 1] = r.get("source_file", "?")
 
+    # Also build a page→source_file map as fallback
+    bi_by_page = {}
+    for r in bi_results:
+        page = r.get("start_page", "?")
+        sf = r.get("source_file", "?")
+        if page != "?" and sf != "?":
+            bi_by_page[page] = sf
+
     clean_changes = []
     if rank_changes:
         for rc in rank_changes:
             before_rank = rc.get("before", 1)
-            source = bi_by_rank.get(before_rank, rc.get("page", "?"))
+            source = bi_by_rank.get(before_rank)
+            if not source or not isinstance(source, str):
+                source = bi_by_page.get(rc.get("page", "?"), rc.get("page", "?"))
             clean_changes.append(
                 {
                     "source_file": source,

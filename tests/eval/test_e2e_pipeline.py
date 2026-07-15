@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from src.config import RERANK_TOP_N
 from src.qdrant_store import list_collections
 from src.retriever import format_fragments_for_prompt, search_book
 
@@ -417,8 +418,10 @@ class TestPipelineComparison:
             query = item["query"]
             relevant = item["relevant_documents"]
 
-            # Stage 1: bi-encoder only
-            results_before = search_book(query, book=BOOK, rerank=False)
+            # Stage 1: bi-encoder only (retrieve all candidates so rank_changes match)
+            results_before = search_book(
+                query, book=BOOK, rerank=False, top_k=RERANK_TOP_N
+            )
             r1, p1, rr1 = collect_rerank_result(
                 request.session, query, results_before, relevant, k=2
             )

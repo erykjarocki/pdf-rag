@@ -12,7 +12,7 @@ BASELINE_JSON = _parent / "eval-baseline.json"
 CSS = """
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  max-width: 960px; margin: 0 auto; padding: 20px;
+  max-width: 1100px; margin: 0 auto; padding: 20px;
   background: #f8f9fa; color: #1a1a1a;
 }
 h1 { border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
@@ -64,67 +64,76 @@ h1 { border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
 }
 .query-card {
   background: white; border: 1px solid #dee2e6;
-  border-radius: 8px; margin: 16px 0; overflow: hidden;
+  border-radius: 8px; margin: 20px 0; overflow: hidden;
 }
-.query-header { padding: 12px 16px; background: #e9ecef; font-weight: 600; }
-.query-meta { padding: 8px 16px; font-size: 13px; color: #555; }
-.fragment { padding: 12px 16px; border-top: 1px solid #eee; }
-.fragment-header {
-  display: flex; justify-content: space-between;
-  margin-bottom: 6px; font-size: 13px;
+.query-header {
+  padding: 14px 16px; background: #e9ecef; font-weight: 600; font-size: 15px;
 }
-.rank { font-weight: 700; }
-.score { color: #555; }
-.source { color: #555; font-family: monospace; font-size: 12px; }
-.relevant { background: #e6ffe6; }
-.irrelevant { background: #fff0f0; }
+.query-meta {
+  padding: 8px 16px; font-size: 13px; color: #555;
+  border-bottom: 1px solid #eee;
+}
+.query-metrics {
+  display: flex; gap: 12px; padding: 8px 16px;
+  font-size: 12px; color: #666; border-bottom: 1px solid #eee;
+  flex-wrap: wrap;
+}
+.query-metrics span { white-space: nowrap; }
+.query-metrics .good { color: #28a745; font-weight: 600; }
+.query-metrics .bad { color: #dc3545; font-weight: 600; }
+.results-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.results-table th {
+  padding: 8px 10px; text-align: left; background: #f8f9fa;
+  font-weight: 600; font-size: 12px; border-bottom: 2px solid #dee2e6;
+  white-space: nowrap;
+}
+.results-table td {
+  padding: 7px 10px; border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+}
+.results-table tr:last-child td { border-bottom: none; }
+.results-table .rank-col { text-align: center; font-weight: 700; width: 30px; }
+.results-table .before-col { text-align: center; color: #666; width: 40px; }
+.results-table .delta-col { text-align: center; width: 40px; font-weight: 600; }
+.results-table .delta-col.up { color: #28a745; }
+.results-table .delta-col.down { color: #dc3545; }
+.results-table .delta-col.flat { color: #999; }
+.results-table .source-col {
+  font-family: monospace; font-size: 11px; color: #555;
+  white-space: nowrap; max-width: 200px; overflow: hidden;
+  text-overflow: ellipsis;
+}
+.results-table .score-col {
+  font-family: monospace; font-size: 11px; color: #666;
+  white-space: nowrap;
+}
+.results-table .status-col { width: 60px; }
+.results-table .text-col {
+  font-size: 12px; color: #444; max-width: 300px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .tag {
   display: inline-block; padding: 1px 6px; border-radius: 4px;
-  font-size: 11px; font-weight: 600; margin-left: 6px;
+  font-size: 10px; font-weight: 600;
 }
-.tag.relevant-tag { background: #28a745; color: white; }
-.tag.irrelevant-tag { background: #dc3545; color: white; }
-.text {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 12px; line-height: 1.5; white-space: pre-wrap; color: #333;
+.tag.rel { background: #28a745; color: white; }
+.tag.not-rel { background: #dc3545; color: white; }
+tr.selected-k2 { background: #e8f5e9; border-left: 3px solid #28a745; }
+tr.selected-k4 { background: #e0f2f1; border-left: 3px solid #009688; }
+tr.selected-k2 td:first-child, tr.selected-k4 td:first-child {
+  padding-left: 7px;
 }
-.relevant-docs { font-size: 13px; color: #555; }
-.rerank-detail { margin: 16px 0; }
-.rerank-detail-header {
-  padding: 10px 16px; background: #f0f7ff; border: 1px solid #b8daff;
-  border-radius: 8px 8px 0 0; font-weight: 600; font-size: 14px;
-  color: #004085;
+.selection-legend {
+  padding: 6px 16px; font-size: 11px; color: #666;
+  background: #f8f9fa; border-top: 1px solid #eee;
+  display: flex; gap: 16px; align-items: center;
 }
-.rerank-columns {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
-  border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 8px 8px;
-  overflow: hidden;
+.selection-legend .swatch {
+  display: inline-block; width: 12px; height: 12px;
+  border-radius: 2px; margin-right: 4px; vertical-align: middle;
 }
-.rerank-col { padding: 0; }
-.rerank-col-header {
-  padding: 8px 12px; font-weight: 600; font-size: 12px;
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
-.rerank-col:first-child .rerank-col-header { background: #e9ecef; color: #495057; }
-.rerank-col:last-child .rerank-col-header { background: #d4edda; color: #155724; }
-.rerank-item {
-  padding: 6px 12px; border-top: 1px solid #f0f0f0;
-  font-size: 12px; display: flex; align-items: baseline; gap: 8px;
-}
-.rerank-item:first-of-type { border-top: none; }
-.rerank-rank { font-weight: 700; min-width: 18px; color: #333; }
-.rerank-source { color: #555; min-width: 28px; font-family: monospace; font-size: 11px; }
-.rerank-score { color: #666; font-family: monospace; font-size: 11px; }
-.rerank-arrow { font-weight: 700; min-width: 22px; text-align: center; }
-.rerank-arrow.up { color: #28a745; }
-.rerank-arrow.down { color: #dc3545; }
-.rerank-arrow.flat { color: #6c757d; }
-.rerank-text {
-  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  color: #555; font-family: monospace; font-size: 11px;
-}
-.rerank-item.relevant-row { background: #f0fff0; }
-.rerank-item.irrelevant-row { background: #fff5f5; }
 .guide {
   background: white; border: 1px solid #dee2e6;
   border-radius: 8px; margin: 24px 0; overflow: hidden;
@@ -145,15 +154,14 @@ h1 { border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
   background: #f0f0f0; padding: 1px 5px; border-radius: 3px;
   font-family: monospace; font-size: 12px;
 }
-.guide-body .example {
-  background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px;
-  padding: 8px 12px; margin: 8px 0; font-family: monospace; font-size: 12px;
-}
 """
 
 
+def _escape_html(text):
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def _load_baseline():
-    """Load baseline metrics if available."""
     if not BASELINE_JSON.exists():
         return None
     try:
@@ -168,7 +176,6 @@ def _load_baseline():
 
 
 def _delta_html(current, baseline_val, key):
-    """Return HTML string showing delta from baseline."""
     if baseline_val is None:
         return '<div class="delta none">no baseline</div>'
     diff = current - baseline_val
@@ -180,7 +187,6 @@ def _delta_html(current, baseline_val, key):
 
 
 def _pipeline_comparison_html(pipeline):
-    """Build the two-stage pipeline comparison section."""
     if not pipeline or "before" not in pipeline or "after" not in pipeline:
         return ""
 
@@ -205,8 +211,7 @@ def _pipeline_comparison_html(pipeline):
 
     summary_text = (
         "Reranking improves retrieval precision by rescoring bi-encoder candidates "
-        "with a more accurate cross-encoder model. It processes all candidates jointly "
-        "with the query, producing better relevance scores."
+        "with a more accurate cross-encoder model."
     )
     if improvements:
         summary_text = f"Improvements: {', '.join(improvements)}. {summary_text}"
@@ -220,8 +225,8 @@ def _pipeline_comparison_html(pipeline):
         "  <table>\n"
         "    <thead><tr>"
         "<th>Metric</th>"
-        "<th>Bi-Encoder (before reranking)</th>"
-        "<th>+Rerank (after reranking)</th>"
+        "<th>Bi-Encoder (before)</th>"
+        "<th>+Rerank (after)</th>"
         "<th>Delta</th>"
         "</tr></thead>\n"
         "    <tbody>\n"
@@ -249,163 +254,174 @@ def _pipeline_comparison_html(pipeline):
             f'<td class="{delta_cls}">{delta_text}</td></tr>\n'
         )
 
-    html += f'    </tbody>\n  </table>\n  <div class="summary">{summary_text}</div>\n</div>\n\n'
+    html += f"    </tbody>\n  </table>\n  <div class=\"summary\">{summary_text}</div>\n</div>\n\n"
     return html
 
 
 def _guide_html():
-    """Build the 'How to read this report' guide section."""
-    return '''
+    return """
 <div class="guide">
   <div class="guide-header" onclick="this.nextElementSibling.style.display =
     this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
     &#9432; How to read this report
   </div>
   <div class="guide-body" style="display:none">
+    <h3>What this report shows</h3>
+    <p>For each query, you see the <strong>final reranked results</strong> in one
+    table. The "Before" column tells you where each item was ranked by the
+    bi-encoder <em>before</em> reranking, so you can see exactly how the
+    cross-encoder reordered the results.</p>
+
+    <h3>Selection highlights</h3>
+    <ul>
+      <li><strong>Green rows</strong> (top 2) &mdash; These are the results
+        returned to the user when k=2.</li>
+      <li><strong>Teal rows</strong> (rows 3-4) &mdash; Additional results
+        included when k=4.</li>
+      <li>Rows below position 4 are <em>not selected</em> at either k value.</li>
+    </ul>
+
+    <h3>Columns</h3>
+    <ul>
+      <li><strong>#</strong> &mdash; Final rank after cross-encoder reranking.</li>
+      <li><strong>Before</strong> &mdash; Rank in the bi-encoder results.
+        &mdash; means the item was not in the bi-encoder top candidates.</li>
+      <li><strong>&Delta;</strong> &mdash; Movement: &#8593;N = promoted N
+        places, &#8595;N = demoted, &mdash; = unchanged.</li>
+      <li><strong>bi:score / ce:score</strong> &mdash; Bi-encoder cosine
+        similarity and cross-encoder relevance score.</li>
+      <li><strong>REL / NOT REL</strong> &mdash; Whether the chunk is from a
+        relevant document (per benchmark labels).</li>
+    </ul>
+
     <h3>Metrics</h3>
     <ul>
-      <li><code>Recall@K</code> &mdash; Of all relevant documents,
-        how many appear in the top K results?
-        A score of 1.0 means every relevant document was found.</li>
-      <li><code>Precision@K</code> &mdash; Of the top K results,
-        what fraction are from relevant documents?
-        A score of 0.5 means half the top results are correct.</li>
-      <li><code>MRR</code> (Mean Reciprocal Rank) &mdash; How high up is the first relevant result?
-        1.0 = first result is relevant, 0.5 = second, 0.33 = third, etc.</li>
-    </ul>
-
-    <h3>K=2 vs K=4</h3>
-    <ul>
-      <li><code>@2</code> measures strict precision &mdash; are the top 2 results correct?</li>
-      <li><code>@4</code> measures broader coverage &mdash; does the system find relevant content
-        within the first 4 results?</li>
-      <li>Reranking typically improves @2 more than @4, since it pushes
-        relevant results higher.</li>
-    </ul>
-
-    <h3>Pipeline Comparison Table</h3>
-    <ul>
-      <li><strong>Bi-Encoder (before reranking)</strong> &mdash; Fast similarity search using cosine
-        distance between independently encoded query and document vectors. Good at broad matching,
-        may miss nuances.</li>
-      <li><strong>+Rerank (after reranking)</strong> &mdash; Cross-encoder rescores each
-        (query, document) pair jointly through a transformer. More accurate but slower.
-        Applied to top-20 bi-encoder candidates.</li>
-      <li><strong>Delta</strong> &mdash; Positive = reranking helped, negative = it hurt.
-        Green deltas are improvements.</li>
-    </ul>
-
-    <h3>Per-Query Reranking Detail</h3>
-    <ul>
-      <li><strong>Left column (Bi-encoder top-8)</strong> &mdash; The 8 results returned by
-        fast similarity search <em>before</em> reranking. These are the candidates.</li>
-      <li><strong>Right column (Cross-encoder top-8)</strong> &mdash; The 8 results after the
-        cross-encoder rescores all 20 candidates and picks the best 8.</li>
-      <li><strong>Arrows</strong> &mdash; Show how items moved:
-        &#8593; = promoted, &#8595; = demoted,
-        &mdash; = unchanged.</li>
-      <li><strong>REL / NOT REL</strong> &mdash; Whether the chunk comes from a relevant document
-        (based on the benchmark labels).</li>
-      <li><strong>bi:0.XXXX ce:0.XXXX</strong> &mdash; The bi-encoder cosine score and the
-        cross-encoder relevance score for that chunk.</li>
-    </ul>
-
-    <h3>Metric Thresholds</h3>
-    <ul>
-      <li><code>Recall@2 &ge; 0.80</code> &mdash; pass (green), otherwise warn (yellow)</li>
-      <li><code>Precision@2 &ge; 0.50</code> &mdash; pass, otherwise warn</li>
-      <li><code>MRR &ge; 0.70</code> &mdash; pass, otherwise warn</li>
-      <li>These thresholds are strict. On a 9-document corpus, perfect performance should yield
-        1.0 on all metrics.</li>
+      <li><code>Recall@K</code> &mdash; Of all relevant documents, how many
+        appear in the top K?</li>
+      <li><code>Precision@K</code> &mdash; Of the top K results, what fraction
+        are relevant?</li>
+      <li><code>MRR</code> &mdash; Position of the first relevant result.</li>
     </ul>
   </div>
 </div>
-'''
+"""
 
 
-def _rerank_detail_html(detail):
-    """Build the per-query reranking detail section."""
+def _unified_results_table(detail, relevant_documents):
+    """Build a single unified results table from rerank_detail."""
     if not detail:
         return ""
 
-    bi_top8 = detail.get("bi_encoder_top8", [])
     reranked_top8 = detail.get("reranked_top8", [])
     rank_changes = detail.get("rank_changes", [])
+    bi_top8 = detail.get("bi_encoder_top8", [])
 
-    if not bi_top8 and not reranked_top8:
+    if not reranked_top8:
         return ""
 
-    rc_by_source = {}
+    # Build lookup: source_file → rank_change info (using after-rank as key)
+    rc_by_after = {}
     for rc in rank_changes:
-        rc_by_source[rc.get("source_file", rc.get("page", "?"))] = rc
+        rc_by_after[rc["after"]] = rc
+
+    # Build lookup: source_file → bi-encoder rank (from bi_top8)
+    bi_rank_by_source = {}
+    for frag in bi_top8:
+        src = frag["source_file"]
+        if src not in bi_rank_by_source:
+            bi_rank_by_source[src] = frag["rank"]
 
     html = (
-        '<div class="rerank-detail">\n'
-        '  <div class="rerank-detail-header">'
-        "Reranking Detail &mdash; Bi-encoder top 8 (before reranking) \u2192 "
-        "Cross-encoder top 8 (after reranking)"
-        "</div>\n"
-        '  <div class="rerank-columns">\n'
+        '<table class="results-table">\n'
+        "  <thead><tr>"
+        "<th class='rank-col'>#</th>"
+        "<th class='before-col'>Before</th>"
+        "<th class='delta-col'>&Delta;</th>"
+        "<th class='source-col'>Source</th>"
+        "<th class='score-col'>bi:score</th>"
+        "<th class='score-col'>ce:score</th>"
+        "<th class='status-col'>Status</th>"
+        "<th class='text-col'>Text preview</th>"
+        "</tr></thead>\n"
+        "  <tbody>\n"
     )
 
-    # Left column: Bi-encoder (before reranking)
-    html += '    <div class="rerank-col">\n'
-    html += '      <div class="rerank-col-header">Bi-encoder top-8 (before reranking)</div>\n'
-    for frag in bi_top8:
-        cls = "relevant-row" if frag["is_relevant"] else "irrelevant-row"
-        tag_cls = "relevant-tag" if frag["is_relevant"] else "irrelevant-tag"
-        tag_text = "REL" if frag["is_relevant"] else "NOT REL"
-        html += (
-            f'      <div class="rerank-item {cls}">'
-            f'<span class="rerank-rank">#{frag["rank"]}</span>'
-            f'<span class="rerank-source">{_escape_html(frag["source_file"])}</span>'
-            f'<span class="rerank-score">{frag["bi_score"]:.4f}</span>'
-            f'<span class="tag {tag_cls}">{tag_text}</span>'
-            f'<span class="rerank-text">{_escape_html(frag["text_preview"])}</span>'
-            f"</div>\n"
-        )
-    if not bi_top8:
-        html += '      <div class="rerank-item" style="color:#999">No data</div>\n'
-    html += "    </div>\n"
-
-    # Right column: Cross-encoder (after reranking)
-    html += '    <div class="rerank-col">\n'
-    html += '      <div class="rerank-col-header">Cross-encoder top-8 (after reranking)</div>\n'
     for frag in reranked_top8:
-        cls = "relevant-row" if frag["is_relevant"] else "irrelevant-row"
-        tag_cls = "relevant-tag" if frag["is_relevant"] else "irrelevant-tag"
-        tag_text = "REL" if frag["is_relevant"] else "NOT REL"
+        after_rank = frag["rank"]
+        source = frag["source_file"]
+        is_rel = frag["is_relevant"]
 
-        source = frag.get("source_file", "?")
-        rc = rc_by_source.get(source)
-        if rc and rc["delta"] > 0:
-            arrow = f'<span class="rerank-arrow up">\u2191{rc["delta"]}</span>'
-        elif rc and rc["delta"] < 0:
-            arrow = f'<span class="rerank-arrow down">\u2193{abs(rc["delta"])}</span>'
+        # Find this item's position before reranking
+        rc = rc_by_after.get(after_rank)
+        if rc:
+            before_rank = rc["before"]
+            delta = rc["delta"]
         else:
-            arrow = '<span class="rerank-arrow flat">\u2014</span>'
+            # Fallback: check bi_top8
+            before_rank = bi_rank_by_source.get(source, None)
+            delta = 0
+
+        # Row class based on selection
+        if after_rank <= 2:
+            row_cls = "selected-k2"
+        elif after_rank <= 4:
+            row_cls = "selected-k4"
+        else:
+            row_cls = ""
+
+        # Before column
+        if before_rank is not None:
+            before_text = str(before_rank)
+        else:
+            before_text = "\u2014"
+
+        # Delta column
+        if before_rank is not None and delta != 0:
+            if delta > 0:
+                delta_cls = "up"
+                delta_text = f"\u2191{delta}"
+            else:
+                delta_cls = "down"
+                delta_text = f"\u2193{abs(delta)}"
+        else:
+            delta_cls = "flat"
+            delta_text = "\u2014"
+
+        # Status tag
+        tag_cls = "rel" if is_rel else "not-rel"
+        tag_text = "REL" if is_rel else "NOT REL"
+
+        # Text preview
+        text = frag.get("text_preview", "")
 
         html += (
-            f'      <div class="rerank-item {cls}">'
-            f'<span class="rerank-rank">#{frag["rank"]}</span>'
-            f"{arrow}"
-            f'<span class="rerank-source">{_escape_html(frag["source_file"])}</span>'
-            f'<span class="rerank-score">bi:{frag["bi_score"]:.4f} ce:{frag["ce_score"]:.4f}</span>'
-            f'<span class="tag {tag_cls}">{tag_text}</span>'
-            f'<span class="rerank-text">{_escape_html(frag["text_preview"])}</span>'
-            f"</div>\n"
+            f'  <tr class="{row_cls}">'
+            f"<td class='rank-col'>{after_rank}</td>"
+            f"<td class='before-col'>{before_text}</td>"
+            f"<td class='delta-col {delta_cls}'>{delta_text}</td>"
+            f"<td class='source-col' title='{_escape_html(source)}'>"
+            f"{_escape_html(source)}</td>"
+            f"<td class='score-col'>{frag['bi_score']:.4f}</td>"
+            f"<td class='score-col'>{frag.get('ce_score', 0) or 0:.4f}</td>"
+            f"<td class='status-col'><span class='tag {tag_cls}'>{tag_text}</span></td>"
+            f"<td class='text-col' title='{_escape_html(text)}'>"
+            f"{_escape_html(text)}</td>"
+            f"</tr>\n"
         )
-    if not reranked_top8:
-        html += '      <div class="rerank-item" style="color:#999">No data</div>\n'
-    html += "    </div>\n"
 
-    html += "  </div>\n</div>\n\n"
+    html += "  </tbody>\n</table>\n"
+
+    # Legend
+    html += (
+        '<div class="selection-legend">'
+        '<span><span class="swatch" style="background:#e8f5e9;border:1px solid #28a745"></span>'
+        "Top 2 (selected for k=2)</span>"
+        '<span><span class="swatch" style="background:#e0f2f1;border:1px solid #009688"></span>'
+        "Top 3-4 (selected for k=4)</span>"
+        "</div>\n"
+    )
+
     return html
-
-
-def _escape_html(text):
-    """Escape HTML special characters."""
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def generate():
@@ -415,28 +431,14 @@ def generate():
 
     data = json.loads(REPORT_JSON.read_text())
     metrics = data["metrics"]
-    queries = data["queries"]
     baseline = _load_baseline()
     rerank_detail_list = data.get("rerank_detail", [])
     rerank_detail_by_query = {d["query"]: d for d in rerank_detail_list}
 
     def metric_class(key, threshold):
-        val = metrics[key]
-        if val >= threshold:
-            return "pass"
-        return "warn"
+        return "pass" if metrics[key] >= threshold else "warn"
 
-    recall_2_cls = metric_class("recall_at_2", 0.8)
-    recall_4_cls = metric_class("recall_at_4", 0.85)
-    precision_2_cls = metric_class("precision_at_2", 0.5)
-    precision_4_cls = metric_class("precision_at_4", 0.4)
-    mrr_cls = metric_class("mrr", 0.7)
-
-    bl_recall_2 = baseline.get("recall_at_2") if baseline else None
-    bl_recall_4 = baseline.get("recall_at_4") if baseline else None
-    bl_precision_2 = baseline.get("precision_at_2") if baseline else None
-    bl_precision_4 = baseline.get("precision_at_4") if baseline else None
-    bl_mrr = baseline.get("mrr") if baseline else None
+    bl = baseline or {}
 
     html = (
         '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
@@ -448,90 +450,130 @@ def generate():
         "<h1>DOC RAG &mdash; Eval Report</h1>\n\n"
     )
 
-    # Guide section
+    # Guide
     html += _guide_html()
 
-    # Pipeline comparison (prominent, at the top)
-    pipeline = data.get("pipeline_comparison")
-    html += _pipeline_comparison_html(pipeline)
+    # Pipeline comparison
+    html += _pipeline_comparison_html(data.get("pipeline_comparison"))
 
-    # Metric cards: dual-k
+    # Metric cards
+    html += '<div class="metrics">\n'
+    for key, label, thresh in [
+        ("recall_at_2", "Recall@2", 0.8),
+        ("recall_at_4", "Recall@4", 0.85),
+        ("precision_at_2", "Precision@2", 0.5),
+        ("precision_at_4", "Precision@4", 0.4),
+        ("mrr", "MRR", 0.7),
+    ]:
+        val = metrics.get(key, 0)
+        cls = metric_class(key, thresh)
+        bl_val = bl.get(key)
+        html += (
+            f'  <div class="metric {cls}">\n'
+            f'    <div class="value">{val:.2f}</div>\n'
+            f"    {_delta_html(val, bl_val, key)}\n"
+            f'    <div class="label">{label}</div>\n  </div>\n'
+        )
     html += (
-        '<div class="metrics">\n'
-        f'  <div class="metric {recall_2_cls}">\n'
-        f'    <div class="value">{metrics["recall_at_2"]:.2f}</div>\n'
-        f"    {_delta_html(metrics['recall_at_2'], bl_recall_2, 'recall_at_2')}\n"
-        '    <div class="label">Recall@2</div>\n  </div>\n'
-        f'  <div class="metric {recall_4_cls}">\n'
-        f'    <div class="value">{metrics.get("recall_at_4", 0):.2f}</div>\n'
-        f"    {_delta_html(metrics.get('recall_at_4', 0), bl_recall_4, 'recall_at_4')}\n"
-        '    <div class="label">Recall@4</div>\n  </div>\n'
-        f'  <div class="metric {precision_2_cls}">\n'
-        f'    <div class="value">{metrics["precision_at_2"]:.2f}</div>\n'
-        f"    {_delta_html(metrics['precision_at_2'], bl_precision_2, 'precision_at_2')}\n"
-        '    <div class="label">Precision@2</div>\n  </div>\n'
-        f'  <div class="metric {precision_4_cls}">\n'
-        f'    <div class="value">{metrics.get("precision_at_4", 0):.2f}</div>\n'
-        f"    {_delta_html(metrics.get('precision_at_4', 0), bl_precision_4, 'precision_at_4')}\n"
-        '    <div class="label">Precision@4</div>\n  </div>\n'
-        f'  <div class="metric {mrr_cls}">\n'
-        f'    <div class="value">{metrics["mrr"]:.2f}</div>\n'
-        f"    {_delta_html(metrics['mrr'], bl_mrr, 'mrr')}\n"
-        '    <div class="label">MRR</div>\n  </div>\n'
         '  <div class="metric pass">\n'
-        f'    <div class="value">{len(queries)}</div>\n'
+        f'    <div class="value">{len(data.get("queries", []))}</div>\n'
         '    <div class="label">Queries</div>\n  </div>\n'
         "</div>\n"
     )
 
-    for q in queries:
+    # Per-query results with unified table
+    for q in data.get("queries", []):
+        query = q["query"]
         relevant_docs = q.get("relevant_documents", [])
-        recall = q.get("recall_at_k", 0)
-        precision = q.get("precision_at_k", 0)
 
+        # Skip _reranked suffixed queries (they're duplicates for metric collection)
+        if query.endswith("_reranked"):
+            continue
+        # Skip (pipeline) suffixed queries too
+        if query.endswith(" (pipeline)"):
+            continue
+
+        html += '<div class="query-card">\n'
+        html += f'  <div class="query-header">&ldquo;{_escape_html(query)}&rdquo;</div>\n'
         html += (
-            '<div class="query-card">\n'
-            f'  <div class="query-header">&ldquo;{q["query"]}&rdquo;</div>\n'
             '  <div class="query-meta">'
-            f"Relevant: {', '.join(relevant_docs)} &nbsp;|&nbsp; "
-            f"Recall@2: {recall:.2f} &nbsp;|&nbsp; "
-            f"Precision@2: {precision:.2f}</div>\n"
+            f"Relevant documents: {', '.join(relevant_docs)}"
+            "</div>\n"
         )
 
-        for frag in q["retrieved_fragments"]:
-            is_rel = frag["is_relevant"]
-            cls = "relevant" if is_rel else "irrelevant"
-            tag_cls = "relevant-tag" if is_rel else "irrelevant-tag"
-            tag_text = "RELEVANT" if is_rel else "NOT RELEVANT"
-            text = frag["text"][:300]
-            if len(frag["text"]) > 300:
-                text += "\u2026"
+        # Per-query metrics
+        r2 = q.get("recall_at_2", 0)
+        p2 = q.get("precision_at_2", 0)
+        r4 = q.get("recall_at_4", 0)
+        p4 = q.get("precision_at_4", 0)
+        rr = q.get("reciprocal_rank", 0)
 
-            html += (
-                f'  <div class="fragment {cls}">\n'
-                '    <div class="fragment-header">\n'
-                "      <span>\n"
-                f'        <span class="rank">#{frag["rank"]}</span>\n'
-                f'        <span class="source">{_escape_html(frag["source_file"])}</span>\n'
-                f'        <span class="tag {tag_cls}">{tag_text}</span>\n'
-                "      </span>\n"
-                f'      <span class="score">score: {frag["score"]:.4f}</span>\n'
-                "    </div>\n"
-                f'    <div class="text">{_escape_html(text)}</div>\n'
-                "  </div>\n"
-            )
+        def mcls(val, thresh):
+            return "good" if val >= thresh else "bad"
 
-        # Add per-query reranking detail if available
-        detail = rerank_detail_by_query.get(q["query"])
-        html += _rerank_detail_html(detail)
+        html += (
+            '  <div class="query-metrics">'
+            f'<span class="{mcls(r2, 0.8)}">R@2={r2:.2f}</span>'
+            f'<span class="{mcls(r4, 0.85)}">R@4={r4:.2f}</span>'
+            f'<span class="{mcls(p2, 0.5)}">P@2={p2:.2f}</span>'
+            f'<span class="{mcls(p4, 0.4)}">P@4={p4:.2f}</span>'
+            f'<span class="{mcls(rr, 0.7)}">MRR={rr:.2f}</span>'
+            "</div>\n"
+        )
+
+        # Unified results table (from rerank_detail if available)
+        detail = rerank_detail_by_query.get(query)
+        if detail:
+            html += _unified_results_table(detail, relevant_docs)
+        else:
+            # Fallback: show bi-encoder only results
+            html += _bi_encoder_only_table(q)
 
         html += "</div>\n"
 
     html += "</body></html>"
     REPORT_HTML.write_text(html)
-    # Also write index.html for GitHub Pages
     (REPORT_HTML.parent / "index.html").write_text(html)
     print(f"Report written to {REPORT_HTML}")
+
+
+def _bi_encoder_only_table(q):
+    """Fallback table when no rerank_detail is available."""
+    frags = q.get("retrieved_fragments", [])
+    if not frags:
+        return '<p style="padding:16px;color:#999">No results</p>\n'
+
+    html = (
+        '<table class="results-table">\n'
+        "  <thead><tr>"
+        "<th class='rank-col'>#</th>"
+        "<th class='source-col'>Source</th>"
+        "<th class='score-col'>Score</th>"
+        "<th class='status-col'>Status</th>"
+        "<th class='text-col'>Text preview</th>"
+        "</tr></thead>\n"
+        "  <tbody>\n"
+    )
+
+    for frag in frags:
+        is_rel = frag["is_relevant"]
+        tag_cls = "rel" if is_rel else "not-rel"
+        tag_text = "REL" if is_rel else "NOT REL"
+        text = frag["text"][:200]
+        src = frag["source_file"]
+        row_cls = "selected-k2" if frag["rank"] <= 2 else ""
+        html += (
+            f'  <tr class="{row_cls}">'
+            f"<td class='rank-col'>{frag['rank']}</td>"
+            f"<td class='source-col'>{_escape_html(src)}</td>"
+            f"<td class='score-col'>{frag['score']:.4f}</td>"
+            f"<td class='status-col'><span class='tag {tag_cls}'>{tag_text}</span></td>"
+            f"<td class='text-col'>{_escape_html(text)}</td>"
+            f"</tr>\n"
+        )
+
+    html += "  </tbody>\n</table>\n"
+    return html
 
 
 if __name__ == "__main__":
