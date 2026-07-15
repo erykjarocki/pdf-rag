@@ -34,7 +34,6 @@ pytest tests/integration/ -v -m integration
 - Qdrant collection CRUD (create, delete, list)
 - Vector upsert and cosine similarity query
 - Score ranking (exact match ranks higher than partial)
-- FastAPI endpoint contract (`/health`, `/query`, `/books`, `/delete`)
 - Dimension mismatch detection (search errors on wrong-model collections)
 
 ### Eval Tests
@@ -166,8 +165,7 @@ tests/
 │   ├── test_ingest.py          # page boundaries, extraction utils
 │   └── test_retriever.py       # formatting, result parsing
 ├── integration/
-│   ├── test_retrieval.py       # Qdrant round-trip (in-memory)
-│   └── test_api.py             # FastAPI TestClient endpoint tests
+│   └── test_retrieval.py       # Qdrant round-trip (in-memory)
 └── eval/
     ├── conftest.py             # benchmark corpus fixtures, metric functions
     ├── benchmark_docs/         # enterprise-rag-gold-standard markdown docs
@@ -205,7 +203,6 @@ GitHub Actions runs a 3-stage pipeline on every PR (see `.github/workflows/ci.ym
 |-----------|-------|--------|---------|
 | Pure function | `tests/unit/test_<module>.py` | `@pytest.mark.unit` | None |
 | Qdrant round-trip | `tests/integration/` | `@pytest.mark.integration` | `qdrant_memory` |
-| FastAPI endpoint | `tests/integration/` | `@pytest.mark.integration` | `TestClient(app)` |
 | Full pipeline + real model | `tests/eval/` | `@pytest.mark.eval` | `benchmark_indexed_qdrant` |
 
 ### Eval Test Design Philosophy

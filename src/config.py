@@ -43,12 +43,6 @@ class SearchConfig:
 
 
 @dataclass
-class ApiConfig:
-    host: str = "0.0.0.0"
-    port: int = 8000
-
-
-@dataclass
 class RerankConfig:
     enabled: bool = True
     model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
@@ -61,7 +55,6 @@ class Settings:
     qdrant: QdrantConfig = field(default_factory=QdrantConfig)
     chunking: ChunkingConfig = field(default_factory=ChunkingConfig)
     search: SearchConfig = field(default_factory=SearchConfig)
-    api: ApiConfig = field(default_factory=ApiConfig)
     rerank: RerankConfig = field(default_factory=RerankConfig)
 
 
@@ -75,8 +68,6 @@ def _apply_env_overrides(settings: Settings) -> Settings:
         "CHUNK_SIZE": (settings.chunking, "size"),
         "CHUNK_OVERLAP": (settings.chunking, "overlap"),
         "TOP_K": (settings.search, "top_k"),
-        "API_HOST": (settings.api, "host"),
-        "API_PORT": (settings.api, "port"),
         "RERANK_ENABLED": (settings.rerank, "enabled"),
         "RERANK_MODEL": (settings.rerank, "model"),
         "RERANK_TOP_N": (settings.rerank, "top_n"),
@@ -113,10 +104,6 @@ def load_config() -> Settings:
                 for k, v in data["search"].items():
                     if hasattr(settings.search, k):
                         setattr(settings.search, k, v)
-            if "api" in data:
-                for k, v in data["api"].items():
-                    if hasattr(settings.api, k):
-                        setattr(settings.api, k, v)
             if "rerank" in data:
                 for k, v in data["rerank"].items():
                     if hasattr(settings.rerank, k):
@@ -150,9 +137,6 @@ QDRANT_PORT = settings.qdrant.port
 CHUNK_SIZE = settings.chunking.size
 CHUNK_OVERLAP = settings.chunking.overlap
 TOP_K = settings.search.top_k
-
-API_HOST = settings.api.host
-API_PORT = settings.api.port
 
 RERANK_ENABLED = settings.rerank.enabled
 RERANK_MODEL = settings.rerank.model

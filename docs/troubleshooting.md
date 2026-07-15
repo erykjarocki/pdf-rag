@@ -111,11 +111,6 @@ python src/ingest.py --list
 # Check Qdrant health
 curl localhost:6333/health
 
-# Test API locally
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"question": "test query"}'
-
 # Rebuild a specific book
 python src/ingest.py --reindex investor-tom1
 

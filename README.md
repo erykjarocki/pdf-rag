@@ -52,11 +52,6 @@ Then add the printed config snippet to `~/.config/opencode/opencode.json` and re
 # "Ingest /path/to/document.pdf"
 # "Ingest all files in /path/to/documents/"
 
-# Via API
-curl -X POST localhost:8000/ingest -F "file=@document.pdf"
-curl -X POST localhost:8000/ingest-folder -H "Content-Type: application/json" \
-  -d '{"directory": "/path/to/documents"}'
-
 # Via CLI
 python src/ingest.py /path/to/document.pdf
 python src/ingest.py --folder /path/to/documents/
@@ -67,9 +62,6 @@ python src/ingest.py --folder /path/to/documents/
 ```bash
 # Start Qdrant (if stopped)
 make start
-
-# Run API server (optional)
-make serve
 
 # Run MCP server (standalone test)
 make mcp
@@ -107,19 +99,6 @@ make mcp
 - `ingest_document(file_path, reindex=False)` — ingest a single file
 - `ingest_folder(directory, reindex=False)` — ingest all supported files in a directory
 
-## API
-
-Base URL: `http://localhost:8000`
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/query` | POST | Search the knowledge base |
-| `/ingest` | POST | Ingest a file (upload or path) |
-| `/ingest-folder` | POST | Ingest all files in a directory |
-| `/collections` | GET | List indexed collections |
-| `/formats` | GET | List supported file formats |
-| `/health` | GET | Health check |
-
 ## Project structure
 
 ```
@@ -136,7 +115,6 @@ doc-rag/
 │   ├── embeddings.py   # Local embedding model
 │   ├── retriever.py    # search_book() function
 │   ├── mcp_server.py   # MCP server for OpenCode
-│   ├── api.py          # REST API
 │   └── qdrant_store.py # Qdrant client helpers
 ├── venv/
 ├── pyproject.toml

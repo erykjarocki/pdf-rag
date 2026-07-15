@@ -48,7 +48,6 @@ DOC-RAG is a local Retrieval-Augmented Generation system that lets you query doc
 
 Documents are ingested via:
 - **MCP tools**: `ingest_document()` or `ingest_folder()` from OpenCode
-- **REST API**: `POST /ingest` (single file) or `POST /ingest-folder` (directory)
 - **CLI**: `python src/ingest.py <file>` or `python src/ingest.py --folder <dir>`
 
 ### Retrieval Pipeline
@@ -131,8 +130,7 @@ Re-ranking is enabled by default. See [Configuration](configuration.md) for how 
 | `chunking.py` | Token-aware text splitting | `chunk_text()` |
 | `ingest.py` | Document processing pipeline | `process_document()`, `index_document()`, `ingest_folder()` |
 | `retriever.py` | Search and formatting | `search_book()`, `format_fragments_for_prompt()` |
-| `mcp_server.py` | OpenCode integration | `search_book_tool()`, `list_books_tool()`, `ingest_document()`, `ingest_folder()` |
-| `api.py` | REST API | `/query`, `/ingest`, `/ingest-folder`, `/collections`, `/formats`, `/health` |
+| `mcp_server.py` | MCP server for OpenCode | `search_book_tool()`, `list_books_tool()`, `ingest_document()`, `ingest_folder()` |
 
 ## Adapter Pattern
 
@@ -180,4 +178,4 @@ Each strategy is lazy-evaluated: only the first successful strategy is used. Thi
 Different document types need fundamentally different extraction logic. PDFs require PyMuPDF with font analysis; Markdown needs heading parsing; code needs function/class detection. The adapter pattern encapsulates this complexity while providing a uniform `Document` interface, so adding a new format requires only a new adapter class.
 
 ### Why no staging directory?
-Documents are ingested directly from their original location via API, MCP tools, or CLI. No intermediate folder to manage — works with any file path on disk.
+Documents are ingested directly from their original location via MCP tools or CLI. No intermediate folder to manage — works with any file path on disk.

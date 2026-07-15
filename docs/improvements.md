@@ -17,7 +17,7 @@
 | 13 | Hybrid search (BM25 + vector) | ⬜ | 1–2 hrs | **high** | Biggest retrieval improvement — catches exact + semantic matches |
 | 14 | Cross-encoder reranking | ✅ | 1 hr | high | `ms-marco-MiniLM-L-6-v2`, re-scores top-20 → top-8 |
 | 15 | Query expansion / rewriting | ⬜ | 1 hr | medium | Synonym expansion or LLM query variants |
-| 16 | Dockerfile + docker-compose | ✅ | 1 hr | medium | Qdrant + API services, one-command setup |
+| 16 | docker-compose | ✅ | 1 hr | medium | Qdrant service, one-command setup |
 | 17 | Upgrade embedding model | ✅ | 15 min | high | e5-small (384d) → e5-base (768d), better retrieval quality |
 | 18 | Dimension mismatch protection | ✅ | 15 min | medium | Hard error on search, warning on ingest, no hardcoded dims |
 

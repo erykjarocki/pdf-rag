@@ -18,7 +18,7 @@ nav:
   - Home: index.md
   - Architecture: architecture.md
   - Configuration: configuration.md
-  - API Reference: api-reference.md
+  - MCP Reference: api-reference.md
   - Testing: testing.md
   - Troubleshooting: troubleshooting.md
 

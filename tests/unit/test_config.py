@@ -25,8 +25,6 @@ class TestConfigDefaults:
         assert s.chunking.size == 384
         assert s.chunking.overlap == 50
         assert s.search.top_k == 8
-        assert s.api.host == "0.0.0.0"
-        assert s.api.port == 8000
 
     def test_generate_config_returns_dict(self):
         cfg = generate_config()
@@ -35,7 +33,6 @@ class TestConfigDefaults:
         assert "qdrant" in cfg
         assert "chunking" in cfg
         assert "search" in cfg
-        assert "api" in cfg
 
 
 @pytest.mark.unit

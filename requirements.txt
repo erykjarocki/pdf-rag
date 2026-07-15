@@ -1,6 +1,4 @@
 pymupdf
 sentence-transformers
 qdrant-client
-fastapi
-uvicorn
 fastmcp

@@ -1,4 +1,4 @@
-.PHONY: setup install serve mcp qdrant start stop clean lint fmt docs docs-serve test test-unit test-integration test-eval docker-up docker-down
+.PHONY: setup install mcp qdrant start stop clean lint fmt docs docs-serve test test-unit test-integration test-eval
 
 PY = venv/bin/python
 PIP = venv/bin/pip
@@ -40,15 +40,6 @@ setup:
 install:
 	$(PIP) install -e ".[dev]"
 
-# Docker Compose
-docker-up:
-	docker compose up -d --build
-	@echo "API running at http://localhost:$${API_PORT:-8000}"
-	@echo "Qdrant running at http://localhost:$${QDRANT_PORT:-6333}"
-
-docker-down:
-	docker compose down
-
 # Qdrant
 qdrant:
 	docker run -d --name qdrant -p 6333:6333 \
@@ -61,10 +52,7 @@ start:
 stop:
 	docker stop qdrant
 
-# Servers
-serve:
-	$(PY) src/api.py
-
+# MCP Server
 mcp:
 	$(PY) src/mcp_server.py
 
