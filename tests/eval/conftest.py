@@ -20,8 +20,14 @@ from src.qdrant_store import ensure_collection
 BENCHMARK_COLLECTION = "eval_benchmark"
 BENCHMARK_DOCS_DIR = Path(__file__).parent / "benchmark_docs"
 
-REPORT_PATH = Path(os.environ.get("EVAL_REPORT_PATH", Path(__file__).parent / "eval-report.json"))
+REPORT_PATH = Path(
+    os.environ.get("EVAL_REPORT_PATH", Path(__file__).parent / "eval-report.json")
+)
 BASELINE_PATH = Path(__file__).parent / "eval-baseline.json"
+
+
+def _is_answerable(item):
+    return item.get("category", "single_passage") != "no_answer"
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -32,13 +38,40 @@ def pytest_sessionfinish(session, exitstatus):
         return
 
     def _compute_metrics(items):
-        return {
-            "recall_at_2": round(sum(i["recall_at_2"] for i in items) / len(items), 4),
-            "precision_at_2": round(sum(i["precision_at_2"] for i in items) / len(items), 4),
-            "mrr": round(sum(i["reciprocal_rank"] for i in items) / len(items), 4),
-            "recall_at_4": round(sum(i["recall_at_4"] for i in items) / len(items), 4),
-            "precision_at_4": round(sum(i["precision_at_4"] for i in items) / len(items), 4),
-        }
+        answerable = [i for i in items if _is_answerable(i)]
+        no_answer = [i for i in items if not _is_answerable(i)]
+
+        if answerable:
+            n = len(answerable)
+            m = {
+                "recall_at_2": round(
+                    sum(i["recall_at_2"] for i in answerable) / n, 4
+                ),
+                "precision_at_2": round(
+                    sum(i["precision_at_2"] for i in answerable) / n, 4
+                ),
+                "mrr": round(
+                    sum(i["reciprocal_rank"] for i in answerable) / n, 4
+                ),
+                "recall_at_4": round(
+                    sum(i["recall_at_4"] for i in answerable) / n, 4
+                ),
+                "precision_at_4": round(
+                    sum(i["precision_at_4"] for i in answerable) / n, 4
+                ),
+            }
+        else:
+            m = {
+                "recall_at_2": 0,
+                "precision_at_2": 0,
+                "mrr": 0,
+                "recall_at_4": 0,
+                "precision_at_4": 0,
+            }
+
+        m["n_answerable"] = len(answerable)
+        m["n_no_answer"] = len(no_answer)
+        return m
 
     # Terminal summary
     terminal = session.config.get_terminal_writer()
@@ -48,12 +81,14 @@ def pytest_sessionfinish(session, exitstatus):
     terminal.write("=" * 70 + "\n\n")
 
     for item in results:
-        terminal.write(f'Query: "{item["query"]}"\n')
+        cat = item.get("category", "?")
+        terminal.write(f'Query [{cat}]: "{item["query"]}"\n')
         for frag in item["retrieved_fragments"]:
             relevant = frag["is_relevant"]
             mark = "  \u2713 RELEVANT" if relevant else ""
             terminal.write(
-                f"  [{frag['rank']}] score={frag['score']:.2f}  file={frag['source_file']}{mark}\n"
+                f"  [{frag['rank']}] score={frag['score']:.2f}  "
+                f"file={frag['source_file']}{mark}\n"
             )
             for line in frag["text"].split("\n"):
                 terminal.write(f"      {line}\n")
@@ -70,6 +105,9 @@ def pytest_sessionfinish(session, exitstatus):
             f"Precision@2: {m['precision_at_2']:.2f} | "
             f"Precision@4: {m['precision_at_4']:.2f} | "
             f"MRR: {m['mrr']:.2f}\n"
+        )
+        terminal.write(
+            f"  ({m['n_answerable']} answerable, {m['n_no_answer']} no-answer queries)\n"
         )
 
     # Show baseline delta if available
@@ -106,15 +144,21 @@ def pytest_sessionfinish(session, exitstatus):
         m_before = (
             _compute_metrics(results)
             if results
-            else {"recall_at_2": 0, "precision_at_2": 0,
-                  "mrr": 0, "recall_at_4": 0, "precision_at_4": 0}
+            else {
+                "recall_at_2": 0, "precision_at_2": 0,
+                "mrr": 0, "recall_at_4": 0, "precision_at_4": 0,
+            }
         )
         m_after = _compute_metrics(rerank_results)
         terminal.write("\n")
         terminal.write("=" * 70 + "\n")
-        terminal.write("PIPELINE COMPARISON: Bi-Encoder \u2192 Cross-Encoder Reranking\n")
+        terminal.write(
+            "PIPELINE COMPARISON: Bi-Encoder \u2192 Cross-Encoder Reranking\n"
+        )
         terminal.write("=" * 70 + "\n")
-        terminal.write(f"  {'Metric':<15} {'Bi-Encoder':>12} {'+Rerank':>12} {'Delta':>10}\n")
+        terminal.write(
+            f"  {'Metric':<15} {'Bi-Encoder':>12} {'+Rerank':>12} {'Delta':>10}\n"
+        )
         terminal.write(f"  {'-' * 49}\n")
         for key, label in [
             ("recall_at_2", "Recall@2"),
@@ -161,7 +205,9 @@ def pytest_sessionfinish(session, exitstatus):
         pass
 
 
-def collect_eval_result(session, query, results, relevant_documents, k=2):
+def collect_eval_result(
+    session, query, results, relevant_documents, k=2, category="single_passage"
+):
     """Run metrics on a query result and store on session for the summary hook.
 
     Relevance is file-based: a chunk is relevant if its source_file matches
@@ -172,13 +218,16 @@ def collect_eval_result(session, query, results, relevant_documents, k=2):
 
     # Deduplicate: only store once per query
     if any(item["query"] == query for item in session.eval_results):
-        return (
-            _recall_at_k(results, relevant_documents, k),
-            _precision_at_k(results, relevant_documents, k),
-            _mrr(results, relevant_documents),
-        )
+        if _is_answerable({"category": category}):
+            return (
+                _recall_at_k(results, relevant_documents, k),
+                _precision_at_k(results, relevant_documents, k),
+                _mrr(results, relevant_documents),
+            )
+        return 0.0, 0.0, 0.0
 
-    rr = _mrr(results, relevant_documents)
+    is_ans = _is_answerable({"category": category})
+    rr = _mrr(results, relevant_documents) if is_ans else 0.0
 
     top_k = results[:k]
     fragments = []
@@ -189,7 +238,9 @@ def collect_eval_result(session, query, results, relevant_documents, k=2):
                 "text": r["text"],
                 "score": round(r["score"], 4),
                 "source_file": r.get("source_file", ""),
-                "is_relevant": r.get("source_file", "") in relevant_documents,
+                "is_relevant": (
+                    r.get("source_file", "") in relevant_documents if is_ans else False
+                ),
             }
         )
 
@@ -197,37 +248,57 @@ def collect_eval_result(session, query, results, relevant_documents, k=2):
         {
             "query": query,
             "relevant_documents": relevant_documents,
+            "category": category,
             "retrieved_fragments": fragments,
-            "recall_at_k": _recall_at_k(results, relevant_documents, k),
-            "precision_at_k": _precision_at_k(results, relevant_documents, k),
+            "recall_at_k": (
+                _recall_at_k(results, relevant_documents, k) if is_ans else 0.0
+            ),
+            "precision_at_k": (
+                _precision_at_k(results, relevant_documents, k) if is_ans else 0.0
+            ),
             "reciprocal_rank": rr,
-            "recall_at_2": _recall_at_k(results, relevant_documents, 2),
-            "precision_at_2": _precision_at_k(results, relevant_documents, 2),
-            "recall_at_4": _recall_at_k(results, relevant_documents, 4),
-            "precision_at_4": _precision_at_k(results, relevant_documents, 4),
+            "recall_at_2": (
+                _recall_at_k(results, relevant_documents, 2) if is_ans else 0.0
+            ),
+            "precision_at_2": (
+                _precision_at_k(results, relevant_documents, 2) if is_ans else 0.0
+            ),
+            "recall_at_4": (
+                _recall_at_k(results, relevant_documents, 4) if is_ans else 0.0
+            ),
+            "precision_at_4": (
+                _precision_at_k(results, relevant_documents, 4) if is_ans else 0.0
+            ),
         }
     )
 
-    return (
-        _recall_at_k(results, relevant_documents, k),
-        _precision_at_k(results, relevant_documents, k),
-        rr,
-    )
+    if is_ans:
+        return (
+            _recall_at_k(results, relevant_documents, k),
+            _precision_at_k(results, relevant_documents, k),
+            rr,
+        )
+    return 0.0, 0.0, 0.0
 
 
-def collect_rerank_result(session, query, results, relevant_documents, k=2):
+def collect_rerank_result(
+    session, query, results, relevant_documents, k=2, category="single_passage"
+):
     """Store stage-1 (bi-encoder) results for two-stage pipeline comparison."""
     if not hasattr(session, "rerank_results"):
         session.rerank_results = []
 
     if any(item["query"] == query for item in session.rerank_results):
-        return (
-            _recall_at_k(results, relevant_documents, k),
-            _precision_at_k(results, relevant_documents, k),
-            _mrr(results, relevant_documents),
-        )
+        if _is_answerable({"category": category}):
+            return (
+                _recall_at_k(results, relevant_documents, k),
+                _precision_at_k(results, relevant_documents, k),
+                _mrr(results, relevant_documents),
+            )
+        return 0.0, 0.0, 0.0
 
-    rr = _mrr(results, relevant_documents)
+    is_ans = _is_answerable({"category": category})
+    rr = _mrr(results, relevant_documents) if is_ans else 0.0
 
     top_k = results[:k]
     fragments = []
@@ -238,7 +309,9 @@ def collect_rerank_result(session, query, results, relevant_documents, k=2):
                 "text": r["text"],
                 "score": round(r["score"], 4),
                 "source_file": r.get("source_file", ""),
-                "is_relevant": r.get("source_file", "") in relevant_documents,
+                "is_relevant": (
+                    r.get("source_file", "") in relevant_documents if is_ans else False
+                ),
             }
         )
 
@@ -246,22 +319,37 @@ def collect_rerank_result(session, query, results, relevant_documents, k=2):
         {
             "query": query,
             "relevant_documents": relevant_documents,
+            "category": category,
             "retrieved_fragments": fragments,
-            "recall_at_k": _recall_at_k(results, relevant_documents, k),
-            "precision_at_k": _precision_at_k(results, relevant_documents, k),
+            "recall_at_k": (
+                _recall_at_k(results, relevant_documents, k) if is_ans else 0.0
+            ),
+            "precision_at_k": (
+                _precision_at_k(results, relevant_documents, k) if is_ans else 0.0
+            ),
             "reciprocal_rank": rr,
-            "recall_at_2": _recall_at_k(results, relevant_documents, 2),
-            "precision_at_2": _precision_at_k(results, relevant_documents, 2),
-            "recall_at_4": _recall_at_k(results, relevant_documents, 4),
-            "precision_at_4": _precision_at_k(results, relevant_documents, 4),
+            "recall_at_2": (
+                _recall_at_k(results, relevant_documents, 2) if is_ans else 0.0
+            ),
+            "precision_at_2": (
+                _precision_at_k(results, relevant_documents, 2) if is_ans else 0.0
+            ),
+            "recall_at_4": (
+                _recall_at_k(results, relevant_documents, 4) if is_ans else 0.0
+            ),
+            "precision_at_4": (
+                _precision_at_k(results, relevant_documents, 4) if is_ans else 0.0
+            ),
         }
     )
 
-    return (
-        _recall_at_k(results, relevant_documents, k),
-        _precision_at_k(results, relevant_documents, k),
-        rr,
-    )
+    if is_ans:
+        return (
+            _recall_at_k(results, relevant_documents, k),
+            _precision_at_k(results, relevant_documents, k),
+            rr,
+        )
+    return 0.0, 0.0, 0.0
 
 
 def collect_rerank_detail(
@@ -280,19 +368,23 @@ def collect_rerank_detail(
             "rank": rank,
             "source_file": source,
             "bi_score": round(r["score"], 4),
-            "ce_score": round(r.get("rerank_score", 0), 4) if is_ce else None,
-            "text_preview": r["text"][:200] + ("\u2026" if len(r["text"]) > 200 else ""),
+            "ce_score": (
+                round(r.get("rerank_score", 0), 4) if is_ce else None
+            ),
+            "text_preview": r["text"][:200]
+            + ("\u2026" if len(r["text"]) > 200 else ""),
             "is_relevant": source in relevant_documents,
         }
 
     bi_top8 = [_build_frag(r, i + 1) for i, r in enumerate(bi_results[:8])]
-    reranked_top8 = [_build_frag(r, i + 1, is_ce=True) for i, r in enumerate(reranked_results[:8])]
+    reranked_top8 = [
+        _build_frag(r, i + 1, is_ce=True) for i, r in enumerate(reranked_results[:8])
+    ]
 
     bi_by_rank = {}
     for i, r in enumerate(bi_results):
         bi_by_rank[i + 1] = r.get("source_file", "?")
 
-    # Also build a page→source_file map as fallback
     bi_by_page = {}
     for r in bi_results:
         page = r.get("start_page", "?")
@@ -306,7 +398,9 @@ def collect_rerank_detail(
             before_rank = rc.get("before", 1)
             source = bi_by_rank.get(before_rank)
             if not source or not isinstance(source, str):
-                source = bi_by_page.get(rc.get("page", "?"), rc.get("page", "?"))
+                source = bi_by_page.get(
+                    rc.get("page", "?"), rc.get("page", "?")
+                )
             clean_changes.append(
                 {
                     "source_file": source,
@@ -331,7 +425,9 @@ def collect_rerank_detail(
 
 def _precision_at_k(results, relevant_documents, k):
     top_k = results[:k]
-    relevant = sum(1 for r in top_k if r.get("source_file", "") in relevant_documents)
+    relevant = sum(
+        1 for r in top_k if r.get("source_file", "") in relevant_documents
+    )
     return relevant / k
 
 
@@ -355,21 +451,21 @@ def _mrr(results, relevant_documents):
 
 
 # ---------------------------------------------------------------------------
-# Benchmark corpus fixtures (enterprise-rag-gold-standard markdown docs)
+# Benchmark corpus fixtures
 # ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="module")
 def benchmark_corpus():
-    """Load markdown documents from benchmark_docs/.
+    """Load text documents from benchmark_docs/.
 
     Returns list of (filename, text_content) tuples.
     """
     docs = []
-    for md_file in sorted(BENCHMARK_DOCS_DIR.glob("*.md")):
-        text = md_file.read_text()
+    for txt_file in sorted(BENCHMARK_DOCS_DIR.glob("*.txt")):
+        text = txt_file.read_text()
         if text.strip():
-            docs.append((md_file.name, text))
+            docs.append((txt_file.name, text))
     assert len(docs) > 0, "No benchmark documents found"
     return docs
 
@@ -399,7 +495,9 @@ def benchmark_indexed_qdrant(benchmark_corpus, tmp_path_factory):
             chunks = chunk_markdown(text, source_file=filename)
             all_chunks.extend(chunks)
 
-        assert len(all_chunks) > 0, "Expected at least one chunk from benchmark corpus"
+        assert len(all_chunks) > 0, (
+            "Expected at least one chunk from benchmark corpus"
+        )
 
         texts = [c["text"] for c in all_chunks]
         vectors = embed(texts)
@@ -420,7 +518,9 @@ def benchmark_indexed_qdrant(benchmark_corpus, tmp_path_factory):
                 )
             )
 
-        in_memory_client.upsert(collection_name=BENCHMARK_COLLECTION, points=points)
+        in_memory_client.upsert(
+            collection_name=BENCHMARK_COLLECTION, points=points
+        )
     except Exception:
         qdrant_store._client = original_client
         config.EXTRACTED_DIR = original_extracted
@@ -433,6 +533,8 @@ def benchmark_indexed_qdrant(benchmark_corpus, tmp_path_factory):
     config.EXTRACTED_DIR = original_extracted
     ingest.EXTRACTED_DIR = original_extracted
     try:
-        in_memory_client.delete_collection(collection_name=BENCHMARK_COLLECTION)
+        in_memory_client.delete_collection(
+            collection_name=BENCHMARK_COLLECTION
+        )
     except Exception:
         pass

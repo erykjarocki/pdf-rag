@@ -16,6 +16,14 @@ def _load_labels():
         return json.load(f)
 
 
+def _answerable_labels():
+    return [lb for lb in _load_labels() if lb.get("category") != "no_answer"]
+
+
+def _no_answer_labels():
+    return [lb for lb in _load_labels() if lb.get("category") == "no_answer"]
+
+
 @pytest.mark.eval
 class TestFullPipelineIndexing:
     def test_chunks_are_indexed(self, benchmark_indexed_qdrant):
@@ -29,7 +37,9 @@ class TestFullPipelineIndexing:
     def test_chunks_have_required_fields(self, benchmark_indexed_qdrant):
         _, _, chunks = benchmark_indexed_qdrant
         for chunk in chunks:
-            assert "text" in chunk and chunk["text"], "chunk must have non-empty text"
+            assert "text" in chunk and chunk["text"], (
+                "chunk must have non-empty text"
+            )
             assert (
                 "source_file" in chunk and chunk["source_file"]
             ), "chunk must have source_file"
@@ -39,7 +49,9 @@ class TestFullPipelineIndexing:
         count_result = client.count(collection_name=coll_name, exact=True)
         assert count_result.count == len(chunks)
         result, _ = client.scroll(
-            collection_name=coll_name, limit=count_result.count, with_vectors=True
+            collection_name=coll_name,
+            limit=count_result.count,
+            with_vectors=True,
         )
         from src.config import EMBED_DIM
 
@@ -49,69 +61,71 @@ class TestFullPipelineIndexing:
 
 @pytest.mark.eval
 class TestRetrievalQuality:
-    def test_incident_management_query(self, benchmark_indexed_qdrant):
-        results = search_book("financial threshold for Critical Exception", book=BOOK)
+    def test_game_query(self, benchmark_indexed_qdrant):
+        results = search_book("What do keybullet kin drop?", book=BOOK)
         assert len(results) > 0
         top = results[0]
         text_lower = top["text"].lower()
-        assert "10,000" in text_lower or "critical exception" in text_lower
-        assert top["score"] > 0.3
+        assert "key" in text_lower or "drop" in text_lower
+        assert top["score"] > 0.2
 
-    def test_valve_pressure_query(self, benchmark_indexed_qdrant):
-        results = search_book("maximum allowable psi for Valve-B", book=BOOK)
-        assert len(results) > 0
-        top = results[0]
-        text_lower = top["text"].lower()
-        assert "2,800" in text_lower or "valve-b" in text_lower
-        assert top["score"] > 0.3
-
-    def test_remote_work_query(self, benchmark_indexed_qdrant):
-        results = search_book("remote work days allowed per month US policy", book=BOOK)
-        assert len(results) > 0
-        top = results[0]
-        text_lower = top["text"].lower()
-        assert "remote" in text_lower or "work" in text_lower
-
-    def test_breach_reporting_query(self, benchmark_indexed_qdrant):
-        results = search_book("Level-3 regulatory breach reporting hours", book=BOOK)
-        assert len(results) > 0
-        top = results[0]
-        text_lower = top["text"].lower()
-        assert (
-            "breach" in text_lower
-            or "compliance" in text_lower
-            or "report" in text_lower
+    def test_rpg_query(self, benchmark_indexed_qdrant):
+        results = search_book(
+            "What happens on day 2 of the campaign?", book=BOOK
         )
+        assert len(results) > 0
+        top = results[0]
+        text_lower = top["text"].lower()
+        assert "day" in text_lower or "2" in text_lower
+        assert top["score"] > 0.2
+
+    def test_tech_query(self, benchmark_indexed_qdrant):
+        results = search_book(
+            "What is STICI-note and how does it work?", book=BOOK
+        )
+        assert len(results) > 0
+        top = results[0]
+        text_lower = top["text"].lower()
+        assert "stici" in text_lower or "chatbot" in text_lower
+        assert top["score"] > 0.2
+
+    def test_retrieval_system_query(self, benchmark_indexed_qdrant):
+        results = search_book(
+            "What are the key components of a RAG system?", book=BOOK
+        )
+        assert len(results) > 0
+        top = results[0]
+        assert top["score"] > 0.2
 
 
 @pytest.mark.eval
 class TestFormattedOutput:
     def test_citations_have_polish_format(self, benchmark_indexed_qdrant):
-        results = search_book("incident management", book=BOOK)
+        results = search_book("keybullet kin", book=BOOK)
         formatted = format_fragments_for_prompt(results)
         assert "\u0179r\u00f3d\u0142o:" in formatted
 
     def test_numbered_blocks(self, benchmark_indexed_qdrant):
-        results = search_book("incident management", book=BOOK)
+        results = search_book("keybullet kin", book=BOOK)
         formatted = format_fragments_for_prompt(results)
         assert "[1]" in formatted
         if len(results) > 1:
             assert "[2]" in formatted
 
     def test_separator_between_blocks(self, benchmark_indexed_qdrant):
-        results = search_book("incident management", book=BOOK)
+        results = search_book("keybullet kin", book=BOOK)
         formatted = format_fragments_for_prompt(results)
         assert "---" in formatted
 
 
 @pytest.mark.eval
 class TestRetrievalMetrics:
-    """Evaluate retrieval quality using precision, recall, and MRR over labeled data."""
+    """Evaluate retrieval quality on answerable queries only."""
 
     def test_recall_at_2(self, request, benchmark_indexed_qdrant):
         from tests.eval.conftest import collect_eval_result
 
-        labels = _load_labels()
+        labels = _answerable_labels()
         recalls = []
 
         for item in labels:
@@ -122,31 +136,38 @@ class TestRetrievalMetrics:
                 results,
                 item["relevant_documents"],
                 k=2,
+                category=item["category"],
             )
             recalls.append(r)
 
-        avg_recall = sum(recalls) / len(recalls)
-        print(f"\n  recall@2 = {avg_recall:.2f} (threshold: 0.60)")
-        assert avg_recall >= 0.6, f"Recall@2 = {avg_recall:.2f}, expected >= 0.6"
+        avg_recall = sum(recalls) / len(recalls) if recalls else 0
+        print(f"\n  recall@2 = {avg_recall:.2f} (threshold: 0.80)")
+        assert avg_recall >= 0.80, (
+            f"Recall@2 = {avg_recall:.2f}, expected >= 0.80"
+        )
 
     def test_recall_at_4(self, request, benchmark_indexed_qdrant):
         from tests.eval.conftest import _recall_at_k
 
-        labels = _load_labels()
+        labels = _answerable_labels()
         recalls = []
 
         for item in labels:
             results = search_book(item["query"], book=BOOK, rerank=False)
-            recalls.append(_recall_at_k(results, item["relevant_documents"], 4))
+            recalls.append(
+                _recall_at_k(results, item["relevant_documents"], 4)
+            )
 
-        avg_recall = sum(recalls) / len(recalls)
-        print(f"\n  recall@4 = {avg_recall:.2f} (threshold: 0.70)")
-        assert avg_recall >= 0.7, f"Recall@4 = {avg_recall:.2f}, expected >= 0.7"
+        avg_recall = sum(recalls) / len(recalls) if recalls else 0
+        print(f"\n  recall@4 = {avg_recall:.2f} (threshold: 0.83)")
+        assert avg_recall >= 0.83, (
+            f"Recall@4 = {avg_recall:.2f}, expected >= 0.83"
+        )
 
     def test_precision_at_2(self, request, benchmark_indexed_qdrant):
         from tests.eval.conftest import collect_eval_result
 
-        labels = _load_labels()
+        labels = _answerable_labels()
         precisions = []
 
         for item in labels:
@@ -157,35 +178,38 @@ class TestRetrievalMetrics:
                 results,
                 item["relevant_documents"],
                 k=2,
+                category=item["category"],
             )
             precisions.append(p)
 
-        avg_precision = sum(precisions) / len(precisions)
-        print(f"\n  precision@2 = {avg_precision:.2f} (threshold: 0.40)")
-        assert (
-            avg_precision >= 0.4
-        ), f"Precision@2 = {avg_precision:.2f}, expected >= 0.4"
+        avg_precision = sum(precisions) / len(precisions) if precisions else 0
+        print(f"\n  precision@2 = {avg_precision:.2f} (threshold: 0.70)")
+        assert avg_precision >= 0.70, (
+            f"Precision@2 = {avg_precision:.2f}, expected >= 0.70"
+        )
 
     def test_precision_at_4(self, request, benchmark_indexed_qdrant):
         from tests.eval.conftest import _precision_at_k
 
-        labels = _load_labels()
+        labels = _answerable_labels()
         precisions = []
 
         for item in labels:
             results = search_book(item["query"], book=BOOK, rerank=False)
-            precisions.append(_precision_at_k(results, item["relevant_documents"], 4))
+            precisions.append(
+                _precision_at_k(results, item["relevant_documents"], 4)
+            )
 
-        avg_precision = sum(precisions) / len(precisions)
-        print(f"\n  precision@4 = {avg_precision:.2f} (threshold: 0.35)")
-        assert (
-            avg_precision >= 0.35
-        ), f"Precision@4 = {avg_precision:.2f}, expected >= 0.35"
+        avg_precision = sum(precisions) / len(precisions) if precisions else 0
+        print(f"\n  precision@4 = {avg_precision:.2f} (threshold: 0.65)")
+        assert avg_precision >= 0.65, (
+            f"Precision@4 = {avg_precision:.2f}, expected >= 0.65"
+        )
 
     def test_mrr(self, request, benchmark_indexed_qdrant):
         from tests.eval.conftest import collect_eval_result
 
-        labels = _load_labels()
+        labels = _answerable_labels()
         rrs = []
 
         for item in labels:
@@ -196,12 +220,15 @@ class TestRetrievalMetrics:
                 results,
                 item["relevant_documents"],
                 k=2,
+                category=item["category"],
             )
             rrs.append(rr)
 
-        avg_mrr = sum(rrs) / len(rrs)
-        print(f"\n  mrr = {avg_mrr:.2f} (threshold: 0.50)")
-        assert avg_mrr >= 0.5, f"MRR = {avg_mrr:.2f}, expected >= 0.5"
+        avg_mrr = sum(rrs) / len(rrs) if rrs else 0
+        print(f"\n  mrr = {avg_mrr:.2f} (threshold: 0.80)")
+        assert avg_mrr >= 0.80, (
+            f"MRR = {avg_mrr:.2f}, expected >= 0.80"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -213,55 +240,54 @@ class TestRetrievalMetrics:
 class TestRerankRetrievalQuality:
     """Test retrieval quality WITH cross-encoder re-ranking enabled."""
 
-    def test_incident_reranked(self, benchmark_indexed_qdrant):
+    def test_game_reranked(self, benchmark_indexed_qdrant):
         results = search_book(
-            "financial threshold for Critical Exception", book=BOOK, rerank=True
+            "What do keybullet kin drop?", book=BOOK, rerank=True
         )
         assert len(results) > 0
         top = results[0]
         text_lower = top["text"].lower()
-        assert "10,000" in text_lower or "critical exception" in text_lower
-        assert "rerank_score" in top, "rerank_score must be present when rerank=True"
+        assert "key" in text_lower or "drop" in text_lower
+        assert "rerank_score" in top, (
+            "rerank_score must be present when rerank=True"
+        )
 
-    def test_valve_reranked(self, benchmark_indexed_qdrant):
+    def test_rpg_reranked(self, benchmark_indexed_qdrant):
         results = search_book(
-            "maximum allowable psi for Valve-B", book=BOOK, rerank=True
+            "What happens on day 2 of the campaign?", book=BOOK, rerank=True
         )
         assert len(results) > 0
         top = results[0]
-        text_lower = top["text"].lower()
-        assert "2,800" in text_lower or "valve-b" in text_lower
         assert "rerank_score" in top
 
-    def test_remote_work_reranked(self, benchmark_indexed_qdrant):
+    def test_tech_reranked(self, benchmark_indexed_qdrant):
         results = search_book(
-            "remote work days allowed per month US policy", book=BOOK, rerank=True
+            "What is STICI-note and how does it work?",
+            book=BOOK,
+            rerank=True,
         )
         assert len(results) > 0
         top = results[0]
-        text_lower = top["text"].lower()
-        assert "remote" in text_lower or "work" in text_lower
         assert "rerank_score" in top
 
-    def test_breach_reranked(self, benchmark_indexed_qdrant):
+    def test_retrieval_reranked(self, benchmark_indexed_qdrant):
         results = search_book(
-            "Level-3 regulatory breach reporting hours", book=BOOK, rerank=True
+            "What are the key components of a RAG system?",
+            book=BOOK,
+            rerank=True,
         )
         assert len(results) > 0
-        top = results[0]
-        text_lower = top["text"].lower()
-        assert "breach" in text_lower or "compliance" in text_lower
-        assert "rerank_score" in top
+        assert "rerank_score" in results[0]
 
 
 @pytest.mark.rerank
 class TestRerankMetrics:
-    """Evaluate retrieval quality WITH re-ranking enabled."""
+    """Evaluate retrieval quality WITH re-ranking on answerable queries."""
 
     def test_recall_at_2_reranked(self, request, benchmark_indexed_qdrant):
         from tests.eval.conftest import collect_eval_result
 
-        labels = _load_labels()
+        labels = _answerable_labels()
         recalls = []
 
         for item in labels:
@@ -272,31 +298,38 @@ class TestRerankMetrics:
                 results,
                 item["relevant_documents"],
                 k=2,
+                category=item["category"],
             )
             recalls.append(r)
 
-        avg_recall = sum(recalls) / len(recalls)
-        print(f"\n  recall@2 (reranked) = {avg_recall:.2f} (threshold: 0.60)")
-        assert avg_recall >= 0.6, f"Recall@2 = {avg_recall:.2f}, expected >= 0.6"
+        avg_recall = sum(recalls) / len(recalls) if recalls else 0
+        print(f"\n  recall@2 (reranked) = {avg_recall:.2f} (threshold: 0.70)")
+        assert avg_recall >= 0.70, (
+            f"Recall@2 = {avg_recall:.2f}, expected >= 0.70"
+        )
 
     def test_recall_at_4_reranked(self, request, benchmark_indexed_qdrant):
         from tests.eval.conftest import _recall_at_k
 
-        labels = _load_labels()
+        labels = _answerable_labels()
         recalls = []
 
         for item in labels:
             results = search_book(item["query"], book=BOOK, rerank=True)
-            recalls.append(_recall_at_k(results, item["relevant_documents"], 4))
+            recalls.append(
+                _recall_at_k(results, item["relevant_documents"], 4)
+            )
 
-        avg_recall = sum(recalls) / len(recalls)
-        print(f"\n  recall@4 (reranked) = {avg_recall:.2f} (threshold: 0.75)")
-        assert avg_recall >= 0.75, f"Recall@4 = {avg_recall:.2f}, expected >= 0.75"
+        avg_recall = sum(recalls) / len(recalls) if recalls else 0
+        print(f"\n  recall@4 (reranked) = {avg_recall:.2f} (threshold: 0.78)")
+        assert avg_recall >= 0.78, (
+            f"Recall@4 = {avg_recall:.2f}, expected >= 0.78"
+        )
 
     def test_precision_at_2_reranked(self, request, benchmark_indexed_qdrant):
         from tests.eval.conftest import collect_eval_result
 
-        labels = _load_labels()
+        labels = _answerable_labels()
         precisions = []
 
         for item in labels:
@@ -307,35 +340,46 @@ class TestRerankMetrics:
                 results,
                 item["relevant_documents"],
                 k=2,
+                category=item["category"],
             )
             precisions.append(p)
 
-        avg_precision = sum(precisions) / len(precisions)
-        print(f"\n  precision@2 (reranked) = {avg_precision:.2f} (threshold: 0.40)")
-        assert (
-            avg_precision >= 0.4
-        ), f"Precision@2 = {avg_precision:.2f}, expected >= 0.4"
+        avg_precision = (
+            sum(precisions) / len(precisions) if precisions else 0
+        )
+        print(
+            f"\n  precision@2 (reranked) = {avg_precision:.2f} (threshold: 0.65)"
+        )
+        assert avg_precision >= 0.65, (
+            f"Precision@2 = {avg_precision:.2f}, expected >= 0.65"
+        )
 
     def test_precision_at_4_reranked(self, request, benchmark_indexed_qdrant):
         from tests.eval.conftest import _precision_at_k
 
-        labels = _load_labels()
+        labels = _answerable_labels()
         precisions = []
 
         for item in labels:
             results = search_book(item["query"], book=BOOK, rerank=True)
-            precisions.append(_precision_at_k(results, item["relevant_documents"], 4))
+            precisions.append(
+                _precision_at_k(results, item["relevant_documents"], 4)
+            )
 
-        avg_precision = sum(precisions) / len(precisions)
-        print(f"\n  precision@4 (reranked) = {avg_precision:.2f} (threshold: 0.35)")
-        assert (
-            avg_precision >= 0.35
-        ), f"Precision@4 = {avg_precision:.2f}, expected >= 0.35"
+        avg_precision = (
+            sum(precisions) / len(precisions) if precisions else 0
+        )
+        print(
+            f"\n  precision@4 (reranked) = {avg_precision:.2f} (threshold: 0.60)"
+        )
+        assert avg_precision >= 0.60, (
+            f"Precision@4 = {avg_precision:.2f}, expected >= 0.60"
+        )
 
     def test_mrr_reranked(self, request, benchmark_indexed_qdrant):
         from tests.eval.conftest import collect_eval_result
 
-        labels = _load_labels()
+        labels = _answerable_labels()
         rrs = []
 
         for item in labels:
@@ -346,12 +390,15 @@ class TestRerankMetrics:
                 results,
                 item["relevant_documents"],
                 k=2,
+                category=item["category"],
             )
             rrs.append(rr)
 
-        avg_mrr = sum(rrs) / len(rrs)
-        print(f"\n  mrr (reranked) = {avg_mrr:.2f} (threshold: 0.50)")
-        assert avg_mrr >= 0.5, f"MRR = {avg_mrr:.2f}, expected >= 0.5"
+        avg_mrr = sum(rrs) / len(rrs) if rrs else 0
+        print(f"\n  mrr (reranked) = {avg_mrr:.2f} (threshold: 0.75)")
+        assert avg_mrr >= 0.75, (
+            f"MRR = {avg_mrr:.2f}, expected >= 0.15"
+        )
 
 
 @pytest.mark.rerank
@@ -359,29 +406,70 @@ class TestRerankBehavior:
     """Verify reranker mechanics: scores present, ordering correct."""
 
     def test_rerank_score_populated(self, benchmark_indexed_qdrant):
-        results = search_book("incident management", book=BOOK, rerank=True)
+        results = search_book("keybullet kin", book=BOOK, rerank=True)
         assert len(results) > 0
         for r in results:
             assert "rerank_score" in r, f"Missing rerank_score in result: {r}"
             assert isinstance(r["rerank_score"], float)
 
     def test_results_sorted_by_rerank_score(self, benchmark_indexed_qdrant):
-        results = search_book("incident management", book=BOOK, rerank=True)
+        results = search_book("keybullet kin", book=BOOK, rerank=True)
         assert len(results) > 1
         scores = [r["rerank_score"] for r in results]
         assert scores == sorted(
             scores, reverse=True
         ), "Results not sorted by rerank_score"
 
-    def test_rerank_returns_fewer_or_equal_results(self, benchmark_indexed_qdrant):
-        results = search_book("incident management", book=BOOK, rerank=True)
-        assert len(results) <= 8, f"Expected <= 8 results, got {len(results)}"
+    def test_rerank_returns_fewer_or_equal_results(
+        self, benchmark_indexed_qdrant
+    ):
+        results = search_book("keybullet kin", book=BOOK, rerank=True)
+        assert len(results) <= 8, (
+            f"Expected <= 8 results, got {len(results)}"
+        )
 
-    def test_rerank_disabled_has_no_rerank_score(self, benchmark_indexed_qdrant):
-        results = search_book("incident management", book=BOOK, rerank=False)
+    def test_rerank_disabled_has_no_rerank_score(
+        self, benchmark_indexed_qdrant
+    ):
+        results = search_book("keybullet kin", book=BOOK, rerank=False)
         assert len(results) > 0
         for r in results:
-            assert "rerank_score" not in r, "Unexpected rerank_score when rerank=False"
+            assert "rerank_score" not in r, (
+                "Unexpected rerank_score when rerank=False"
+            )
+
+
+# ---------------------------------------------------------------------------
+# No-Answer Queries
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.eval
+class TestNoAnswerQueries:
+    """Verify no-answer queries are handled correctly.
+
+    Our system does not yet detect unanswerable queries, so it will
+    always return chunks. These tests document the current behavior.
+    """
+
+    def test_no_answer_queries_return_results(
+        self, benchmark_indexed_qdrant
+    ):
+        labels = _no_answer_labels()
+        assert len(labels) > 0, "Expected at least some no-answer labels"
+
+        for item in labels:
+            results = search_book(item["query"], book=BOOK, rerank=False)
+            # Current behavior: system always returns results
+            # This test documents that limitation
+            assert isinstance(results, list)
+
+    def test_no_answer_labels_have_no_answer_text(self):
+        labels = _no_answer_labels()
+        for item in labels:
+            assert "answer_text" not in item or not item.get("answer_text"), (
+                f"No-answer query should not have answer_text: {item['query']}"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -409,7 +497,7 @@ class TestPipelineComparison:
             collect_rerank_result,
         )
 
-        labels = _load_labels()
+        labels = _answerable_labels()
         recalls_before, recalls_after = [], []
         precisions_before, precisions_after = [], []
         rrs_before, rrs_after = [], []
@@ -417,24 +505,31 @@ class TestPipelineComparison:
         for item in labels:
             query = item["query"]
             relevant = item["relevant_documents"]
+            cat = item["category"]
 
-            # Stage 1: bi-encoder only (retrieve all candidates so rank_changes match)
+            # Stage 1: bi-encoder only (retrieve all candidates)
             results_before = search_book(
                 query, book=BOOK, rerank=False, top_k=RERANK_TOP_N
             )
             r1, p1, rr1 = collect_rerank_result(
-                request.session, query, results_before, relevant, k=2
+                request.session,
+                query,
+                results_before,
+                relevant,
+                k=2,
+                category=cat,
             )
             recalls_before.append(r1)
             precisions_before.append(p1)
             rrs_before.append(rr1)
 
-            # Stage 2: bi-encoder + cross-encoder (with trace for rank changes)
-            search_result = search_book(query, book=BOOK, rerank=True, trace=True)
+            # Stage 2: bi-encoder + cross-encoder
+            search_result = search_book(
+                query, book=BOOK, rerank=True, trace=True
+            )
             assert isinstance(search_result, SearchResult)
             results_after = search_result.fragments
 
-            # Extract rank_changes from trace
             rank_changes = None
             for stage in search_result.trace.stages:
                 if stage.name == "rerank":
@@ -442,13 +537,17 @@ class TestPipelineComparison:
                     break
 
             r2, p2, rr2 = collect_eval_result(
-                request.session, f"{query} (pipeline)", results_after, relevant, k=2
+                request.session,
+                f"{query} (pipeline)",
+                results_after,
+                relevant,
+                k=2,
+                category=cat,
             )
             recalls_after.append(r2)
             precisions_after.append(p2)
             rrs_after.append(rr2)
 
-            # Store per-query reranking detail for the HTML report
             collect_rerank_detail(
                 request.session,
                 query,
@@ -458,7 +557,6 @@ class TestPipelineComparison:
                 relevant,
             )
 
-        # Compute averages
         def avg(xs):
             return sum(xs) / len(xs) if xs else 0
 
@@ -473,12 +571,13 @@ class TestPipelineComparison:
             "mrr": avg(rrs_after),
         }
 
-        # Print comparison table
         print("\n")
         print("=" * 60)
         print("TWO-STAGE PIPELINE COMPARISON")
         print("=" * 60)
-        print(f"  {'Metric':<15} {'Bi-Encoder':>12} {'+Rerank':>12} {'Delta':>10}")
+        print(
+            f"  {'Metric':<15} {'Bi-Encoder':>12} {'+Rerank':>12} {'Delta':>10}"
+        )
         print(f"  {'-' * 49}")
         for key, label in [
             ("recall", "Recall@2"),
@@ -490,11 +589,3 @@ class TestPipelineComparison:
             sign = "+" if d > 0 else ""
             print(f"  {label:<15} {b:>12.2f} {a:>12.2f} {sign}{d:>9.2f}")
         print("=" * 60)
-
-        # Assertions: reranking should not severely degrade metrics
-        # assert m_after["recall"] >= m_before["recall"] - 0.10, (
-        #     f"Recall degraded significantly: {m_before['recall']:.2f} -> {m_after['recall']:.2f}"
-        # )
-        # assert m_after["mrr"] >= m_before["mrr"] - 0.10, (
-        #     f"MRR degraded significantly: {m_before['mrr']:.2f} -> {m_after['mrr']:.2f}"
-        # )

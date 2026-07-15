@@ -194,6 +194,7 @@ def _pipeline_comparison_html(pipeline):
     after = pipeline["after"]
 
     improvements = []
+    degradations = []
     for key, label in [
         ("recall_at_2", "Recall@2"),
         ("recall_at_4", "Recall@4"),
@@ -207,14 +208,16 @@ def _pipeline_comparison_html(pipeline):
         if d > 0.01:
             improvements.append(f"{label} +{d:.0%}")
         elif d < -0.01:
-            improvements.append(f"{label} {d:.0%}")
+            degradations.append(f"{label} {d:.0%}")
 
-    summary_text = (
-        "Reranking improves retrieval precision by rescoring bi-encoder candidates "
-        "with a more accurate cross-encoder model."
-    )
+    parts = []
     if improvements:
-        summary_text = f"Improvements: {', '.join(improvements)}. {summary_text}"
+        parts.append(f"Improves: {', '.join(improvements)}.")
+    if degradations:
+        parts.append(f"Degrades: {', '.join(degradations)}.")
+    if not parts:
+        parts.append("No significant change.")
+    summary_text = " ".join(parts)
 
     html = (
         '<div class="comparison">\n'
@@ -459,11 +462,11 @@ def generate():
     # Metric cards
     html += '<div class="metrics">\n'
     for key, label, thresh in [
-        ("recall_at_2", "Recall@2", 0.8),
+        ("recall_at_2", "Recall@2", 0.80),
         ("recall_at_4", "Recall@4", 0.85),
-        ("precision_at_2", "Precision@2", 0.5),
-        ("precision_at_4", "Precision@4", 0.4),
-        ("mrr", "MRR", 0.7),
+        ("precision_at_2", "Precision@2", 0.70),
+        ("precision_at_4", "Precision@4", 0.65),
+        ("mrr", "MRR", 0.80),
     ]:
         val = metrics.get(key, 0)
         cls = metric_class(key, thresh)
@@ -474,10 +477,18 @@ def generate():
             f"    {_delta_html(val, bl_val, key)}\n"
             f'    <div class="label">{label}</div>\n  </div>\n'
         )
+    n_ans = metrics.get("n_answerable", 0)
+    n_na = metrics.get("n_no_answer", 0)
     html += (
         '  <div class="metric pass">\n'
-        f'    <div class="value">{len(data.get("queries", []))}</div>\n'
+        f'    <div class="value">{n_ans + n_na}</div>\n'
         '    <div class="label">Queries</div>\n  </div>\n'
+        '  <div class="metric pass">\n'
+        f'    <div class="value">{n_ans}</div>\n'
+        '    <div class="label">Answerable</div>\n  </div>\n'
+        '  <div class="metric warn">\n'
+        f'    <div class="value">{n_na}</div>\n'
+        '    <div class="label">No Answer</div>\n  </div>\n'
         "</div>\n"
     )
 
@@ -485,6 +496,7 @@ def generate():
     for q in data.get("queries", []):
         query = q["query"]
         relevant_docs = q.get("relevant_documents", [])
+        category = q.get("category", "single_passage")
 
         # Skip _reranked suffixed queries (they're duplicates for metric collection)
         if query.endswith("_reranked"):
@@ -497,7 +509,8 @@ def generate():
         html += f'  <div class="query-header">&ldquo;{_escape_html(query)}&rdquo;</div>\n'
         html += (
             '  <div class="query-meta">'
-            f"Relevant documents: {', '.join(relevant_docs)}"
+            f"Category: {category} | "
+            f"Relevant: {', '.join(relevant_docs)}"
             "</div>\n"
         )
 
@@ -511,15 +524,22 @@ def generate():
         def mcls(val, thresh):
             return "good" if val >= thresh else "bad"
 
-        html += (
-            '  <div class="query-metrics">'
-            f'<span class="{mcls(r2, 0.8)}">R@2={r2:.2f}</span>'
-            f'<span class="{mcls(r4, 0.85)}">R@4={r4:.2f}</span>'
-            f'<span class="{mcls(p2, 0.5)}">P@2={p2:.2f}</span>'
-            f'<span class="{mcls(p4, 0.4)}">P@4={p4:.2f}</span>'
-            f'<span class="{mcls(rr, 0.7)}">MRR={rr:.2f}</span>'
-            "</div>\n"
-        )
+        if category != "no_answer":
+            html += (
+                '  <div class="query-metrics">'
+                f'<span class="{mcls(r2, 0.8)}">R@2={r2:.2f}</span>'
+                f'<span class="{mcls(r4, 0.85)}">R@4={r4:.2f}</span>'
+                f'<span class="{mcls(p2, 0.5)}">P@2={p2:.2f}</span>'
+                f'<span class="{mcls(p4, 0.4)}">P@4={p4:.2f}</span>'
+                f'<span class="{mcls(rr, 0.7)}">MRR={rr:.2f}</span>'
+                "</div>\n"
+            )
+        else:
+            html += (
+                '  <div class="query-metrics">'
+                '<span class="bad">No Answer Query (metrics N/A)</span>'
+                "</div>\n"
+            )
 
         # Unified results table (from rerank_detail if available)
         detail = rerank_detail_by_query.get(query)

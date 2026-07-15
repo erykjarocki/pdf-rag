@@ -1,50 +1,922 @@
 [
   {
-    "query": "What is the financial threshold that upgrades a Tier-2 logistics incident to a Critical Exception requiring Regional VP sign-off?",
-    "relevant_documents": ["OP-204_Incident_Management_v4.md"],
-    "category": "direct_retrieval",
-    "description": "Single-document factual lookup with specific threshold"
+    "query": "What do keybullet kin drop?",
+    "relevant_documents": [
+      "doc_00.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "Keybullet kin drop a key upon death."
   },
   {
-    "query": "What is the maximum allowable psi for Valve-B on the H2-Nexus cargo handling system?",
-    "relevant_documents": ["BOM-FLT-H2NEX.md"],
-    "category": "direct_retrieval",
-    "description": "Single-document technical specification lookup"
+    "query": "What kind of gun does the bandana bullet kin use?",
+    "relevant_documents": [
+      "doc_00.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "The bandana bullet kin wields a machine pistol."
   },
   {
-    "query": "Who is the current Vice President of Operations for the EMEA Division, and which hubs fall under their authority?",
-    "relevant_documents": ["RGM-2026_Regional_Governance_Matrix.md"],
-    "category": "direct_retrieval",
-    "description": "Single-document entity extraction from governance matrix"
+    "query": "What do the giants look like?",
+    "relevant_documents": [
+      "doc_01.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "One giant is burly, grey-skinned, and 20 feet tall. It wears heavy dark iron armour covered in metal torns. It is leaning against a chamber wall, carrying what looks to be two tower shields nearly as tall as itself, both bearing\nmenacing spikes.\n\nThe other giant  stands a tall giant in more mobile iron, clutching a dangerous-looking maul the size of Yasha, also leaning and looking disinterested."
   },
   {
-    "query": "What are the three mandatory approval tiers in the dual-authorization framework for capital expenditures above $50,000?",
-    "relevant_documents": ["FIN-AUTH-101_Authorization_Framework.md"],
-    "category": "direct_retrieval",
-    "description": "Single-document policy lookup with specific tiers"
+    "query": "What happens on day 2?",
+    "relevant_documents": [
+      "doc_01.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "After a few miles of winding tunnel, you emerge in a smaller grotto of stalactites and stalagmites dripping with condensation. Unsure if the same underground river, or another water source, is nearby, you can see quite a bit of ground water does funnel down into this area.\n\nYou encounter 2 ropers seeking the next burrowed entrance left by the Kryn."
   },
   {
-    "query": "What is the maximum number of remote work days allowed per month under the US remote work policy?",
-    "relevant_documents": ["HR-POL-030_Remote_Work_US.md"],
-    "category": "direct_retrieval",
-    "description": "Single-document policy lookup"
+    "query": "What were the requirements for the project?",
+    "relevant_documents": [
+      "doc_02.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "The tool had the following requirements:\n- Chatbot that you can ask questions and get answers in response (conversational memory is not required).\n- Information is taken from an unstructured text file.\n- It must be able to tell me if it doesn’t know the answer to my question.\n- Fast.\n- Efficient enough to run on my MacBook with other programs without any performance issues.\n- Locally run for privacy and to ensure it will always be free, runnable, and consistent."
   },
   {
-    "query": "What minimum tonnage must a supplier have handled in the past 24 months to qualify for Tier-1 status?",
-    "relevant_documents": ["AVL-PUR-012_Supplier_Qualification.md", "BOM-FLT-H2NEX.md"],
-    "category": "multi_source",
-    "description": "Cross-document query requiring both supplier qualification and BOM context"
+    "query": "What data did was used to test the prototype?",
+    "relevant_documents": [
+      "doc_02.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "Grace Hopper's Wikipedia page and Alan Turing's Wikipedia page were used to test the prototype."
   },
   {
-    "query": "Within how many hours must a Level-3 regulatory breach be reported to the Chief Compliance Officer?",
-    "relevant_documents": ["SOP-COM-015_Regulatory_Breach_Report.md"],
-    "category": "direct_retrieval",
-    "description": "Single-document compliance procedure lookup"
+    "query": "How do the data storage options compare?",
+    "relevant_documents": [
+      "doc_03.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "For fast start: use SQLite3 and ChromaDB (File-based) out-of-the-box - no install required.\nFor speed + scale: use MongoDB (text collection) and Milvus (vector db) - install with Docker Compose\nFor postgres: use Postgres for both text collection and vector DB - install with Docker Compose\nFor mix-and-match: LLMWare supports 3 text collection databases (Mongo, Postgres, SQLite) and 10 vector databases (Milvus, PGVector-Postgres, Neo4j, Redis, Mongo-Atlas, Qdrant, Faiss, LanceDB, ChromaDB and Pinecone)."
   },
   {
-    "query": "What is the maximum probation period for remote workers in the EMEA region before their arrangement is reviewed?",
-    "relevant_documents": ["HR-POL-030-EMEA_Remote_Work.md"],
-    "category": "direct_retrieval",
-    "description": "Single-document regional policy lookup"
+    "query": "When was UTF-8 support added for European languages?",
+    "relevant_documents": [
+      "doc_03.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "UTF-8 support was added for European languages on Wednesday 3rd April in the v0.2.7 Update."
+  },
+  {
+    "query": "How do I make a button?",
+    "relevant_documents": [
+      "doc_04.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "import marimo as mo\n\nbutton = mo.ui.run_button()\nbutton\n\nmo.stop(not button.value, \"Click 'run' to generate a random number\")\n\nimport random\nrandom.randint(0, 1000)."
+  },
+  {
+    "query": "When might I use caching?",
+    "relevant_documents": [
+      "doc_04.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "You might use caching when, for example, your notebook computes t-SNE, UMAP, or PyMDE embeddings."
+  },
+  {
+    "query": "What are the key topics of this article?",
+    "relevant_documents": [
+      "doc_05.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "The key topics of this article are: \"why prioritizing impact matters not just for managers, but also ICs\"; \"why focusing on impact is hard\"; \"how to maximize your impact\"; and \"how to overcome common challenges in driving real impact\"."
+  },
+  {
+    "query": "Do I have to do something all by myself to be acknowledged for it?",
+    "relevant_documents": [
+      "doc_05.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "You don’t have to be solely responsible for something in order to take (partial) credit for it. If you provided the analysis that resulted in a pricing change that saved the company millions, then you deserve part of the credit for that impact."
+  },
+  {
+    "query": "What kinds of models would need to be officially registered?",
+    "relevant_documents": [
+      "doc_06.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "High-risk AI systems that are deployed by public authorities or entities acting on their behalf will have to be registered in a public EU database, unless those systems are used for law enforcement and migration. The latter will have to be registered in a non-public part of the database that will be only accessible to relevant supervisory authorities."
+  },
+  {
+    "query": "What kinds of AI carry \"systematic risks\"?",
+    "relevant_documents": [
+      "doc_06.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "For now, general purpose AI models that were trained using a total computing power of more than 10^25 FLOPs are considered to carry systemic risks, given that models trained with larger compute tend to be more powerful. The AI Office (established within the Commission) may update this threshold in light of technological advances, and may furthermore in specific cases designate other models as such based on further criteria (e.g. number of users, or the degree of autonomy of the model)."
+  },
+  {
+    "query": "Which quest does the emperor give the player?",
+    "relevant_documents": [
+      "doc_07.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "The emperor gives the player the \"Visit the Emperor's Old Hideout\" quest."
+  },
+  {
+    "query": "Who ambushes the party at Wyrm's lookout?",
+    "relevant_documents": [
+      "doc_07.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "On the way to Baldur's Gate, the party will be ambushed by a group of Gish'ra warriors while resting at Wyrm's Lookout."
+  },
+  {
+    "query": "What did I drink at the pintxo bars?",
+    "relevant_documents": [
+      "doc_08.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "You drank txakoli at the pintxo bars."
+  },
+  {
+    "query": "Which part of the trip did I like the most?",
+    "relevant_documents": [
+      "doc_08.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "Your favourite part of the trip was your four days on the Camino."
+  },
+  {
+    "query": "What is the meaning behind the infrared scenes?",
+    "relevant_documents": [
+      "doc_09.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "The significance of the use of infrared might be in stating how the Polish family cannot be themselves as soon as they step out of their house or into the open balcony as well. Although the girl takes on the dangerous responsibility of helping the prisoners, she still cannot express her true self in public, leading to her being shown in infrared. Another perspective is that the girl and her mother truly stand out in this horrific world solely because of their generous actions. Therefore, in a film like this, in which the Nazis and the enablers are the “normal” people, anyone with any sense of humanity has to be visually differentiated from the Hoss family members."
+  },
+  {
+    "query": "How do the people who commit atrocious acts and those that are complicit in these acts differ?",
+    "relevant_documents": [
+      "doc_09.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "The Zone of Interest does not really differentiate between evil-doers and those supporting such evil."
+  },
+  {
+    "query": "What is the policy on Tai Chi?",
+    "relevant_documents": [
+      "doc_10.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "In order to calm down the passions and stresses currently exhibited in Parliament, the Loony Party would make all M.P’s have half an hours compulsory Tai chi everyday."
+  },
+  {
+    "query": "What is the proposed change for the British museum",
+    "relevant_documents": [
+      "doc_10.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "The British Museum should have a Daddy’s section alongside the current Mummy exhibition."
+  },
+  {
+    "query": "How much faster is the Tesla A100 compared to the Tesla V100?",
+    "relevant_documents": [
+      "doc_11.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "When measured on the SE-ResNeXt101 deep learning architecture, the Tesla A100 was 1.43x faster than the Tesla V100. When measured on the Masked-R-CNN deep learning architecture the Tesla A100 was 1.47x faster than the Tesla V100. When measured on the Transformer (12 layer, Machine Translation, WMT14 en-de) deep learning architecture, the Tesla A100 was 1.70x faster than the Tesla V100."
+  },
+  {
+    "query": "For what work did I receive criticism for my reduction of FLOPS?",
+    "relevant_documents": [
+      "doc_11.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "You received criticism for your research on sparse network training."
+  },
+  {
+    "query": "How does function exporting differ between Gleam and Python?",
+    "relevant_documents": [
+      "doc_12.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "In Python, top level functions are exported by default. There is no notion of private module-level functions. In Gleam, functions are private by default and need the pub keyword to be public."
+  },
+  {
+    "query": "What is the syntax for pipe",
+    "relevant_documents": [
+      "doc_12.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "The operator for Pipe in Gleam is '|>'."
+  },
+  {
+    "query": "Why are the top-right values in the raw attention weights set to negative infinity?",
+    "relevant_documents": [
+      "doc_13.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "A mask of negative infinity is applied to the upper right entries of the raw attention weights to ensure they will zero out after softmax."
+  },
+  {
+    "query": "How can I freeze a variable during training in MLX?",
+    "relevant_documents": [
+      "doc_13.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "To freeze an attribute during training, you can add '_' as a prefix to the attribute name, which signals to mlx that it is not a parameter and should not be updated during training."
+  },
+  {
+    "query": "How is the narrator related to Perry",
+    "relevant_documents": [
+      "doc_14.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "Perry is the narrator's brother."
+  },
+  {
+    "query": "How long has the narrator been sober for?",
+    "relevant_documents": [
+      "doc_14.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "The author had been sober for seven hundred and thirty days."
+  },
+  {
+    "query": "What is the name of the space station?",
+    "relevant_documents": [
+      "doc_15.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "The space station is called \"Babystation Beta\"."
+  },
+  {
+    "query": "What languages do the people of Pacifico del Rio speak?",
+    "relevant_documents": [
+      "doc_15.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "All of the humans speak a single language that is similar to Cantonese."
+  },
+  {
+    "query": "In which patch was pet adoption added?",
+    "relevant_documents": [
+      "doc_16.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "The ability to adopt pets from Marnie's shop from year two was added in patch 1.6.3."
+  },
+  {
+    "query": "When did mushroom trees stop dropping wood?",
+    "relevant_documents": [
+      "doc_16.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "Mushroom trees stopped dropping wood in patch 1.4.0."
+  },
+  {
+    "query": "Where was Alan Wake 2 officially announced?",
+    "relevant_documents": [
+      "doc_17.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "Alan Wake 2 was officially announced at The Game Awards 2021."
+  },
+  {
+    "query": "When is this game set?",
+    "relevant_documents": [
+      "doc_17.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "This game is set in 2023, thirteen years after the events of Alan Wake."
+  },
+  {
+    "query": "Who wrote 'Divine Rivals'?",
+    "relevant_documents": [
+      "doc_18.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "Rebecca Ross wrote 'Divine Rivals'."
+  },
+  {
+    "query": "Who was resurrected with a group of other murder victims?",
+    "relevant_documents": [
+      "doc_18.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "Lou was resurrected along with a handful of other women murdered by a single serial killer."
+  },
+  {
+    "query": "What categories does this paper split the RAG technique paradigm into?",
+    "relevant_documents": [
+      "doc_19.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "This paper organizes the RAG paradigm into four categories: pre-retrieval, retrieval, post-retrieval, and generation."
+  },
+  {
+    "query": "In what way can including unrelated documents affect the RAG system?",
+    "relevant_documents": [
+      "doc_19.txt"
+    ],
+    "category": "single_passage",
+    "answer_text": "Noise Power (Cuconasu et al., 2024) provide a comprehensive analysis of the impact of IR components on RAG systems, revealing that the inclusion of irrelevant documents can significantly improve accuracy."
+  },
+  {
+    "query": "Which enemy types wield an AK-47?",
+    "relevant_documents": [
+      "doc_00.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Assault-rifle wielding Bullet and Tankers wield AK-47s."
+  },
+  {
+    "query": "What makes jammed enemies different?",
+    "relevant_documents": [
+      "doc_00.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Jammed Keybullet Kin drop 2 keys instead of 1, jammed Chance Kins have a chance to drop twice the loot, and jammed red-Caped Bullet Kin deal contact damage. Additionally, Jammed Keybullet Kin Jammed variations run faster and will take less time to teleport away from the player if they are not destroyed quickly."
+  },
+  {
+    "query": "What enemies are encountered in the second encounter?",
+    "relevant_documents": [
+      "doc_01.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "26 kobolds and 1 kobold inventor are encountered in the second encounter."
+  },
+  {
+    "query": "What monsters are encountered in this journey?",
+    "relevant_documents": [
+      "doc_01.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Ropers, kobolds, kobold inventors, fire giants, and fire giant dreadnoughts."
+  },
+  {
+    "query": "What framework was chosen to execute the RAG process and what alternatives were considered?",
+    "relevant_documents": [
+      "doc_02.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The LangChain framework was used to orchestrate the RAG process. Llamaindex and LitGPT were also considered during development. Llmware was considered after development had finished."
+  },
+  {
+    "query": "Which large language models and vector databases were shortlisted for this project?",
+    "relevant_documents": [
+      "doc_02.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The tinyllama-1.1b-chat-v1.0 Q6_K, Phi 3 Q4_K_M\", bartowski/dolphin-2.8-experiment26-7b-GGUF Q3_K_L, mgonzs13/Mistroll-7B-v2.2-GGU, and QuantFactory/Meta-Llama-3-8B-Instruct Q3_K_M large language models and the Chroma, Qdrant, and Vespa vector databases were shortlisted for this project."
+  },
+  {
+    "query": "What kind of model is the bling-phi-3 model",
+    "relevant_documents": [
+      "doc_03.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The bling-phi-3 model is the newest and most accurate BLING/DRAGON model. BLING models are small CPU-based RAG-optimized, instruct-following 1B-3B parameter models. DRAGON models are production-grade RAG-optimized 6-7B parameter models - \"Delivering RAG on ...\" the leading foundation base models."
+  },
+  {
+    "query": "In which versions were the SLIM models updated?",
+    "relevant_documents": [
+      "doc_03.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The SLIM models were updated in versions 0.2.3, 0.2.6, 0.2.12, 0.3.0, and 0.3.1."
+  },
+  {
+    "query": "What are the ways of grouping UI elements together?",
+    "relevant_documents": [
+      "doc_04.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "UI elements can be grouped together using the following methods:\n- Create an array of UI elements.\n- Create a dictionary of UI elements.\n- Embed a dynamic number of UI elements in another output.\n- Create a hstack (or vstack) of UI elements with on_change handlers.\n- Create a table column of buttons with on_change handlers\n- Create a form with multiple UI elements."
+  },
+  {
+    "query": "What are the parameters for the mo.ui.text function?",
+    "relevant_documents": [
+      "doc_04.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The parameters for mo.ui.text are label and placeholder. These are both optional."
+  },
+  {
+    "query": "What are the given examples of common challenges?",
+    "relevant_documents": [
+      "doc_05.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The given examples of common challenges are: \"you create a comprehensive analysis but nobody is acting on it\"; \"you ran an experiment but nobody is using the results\"; \"you built a predictive model, but the team you built it for is not using it\"; and \"you created a dashboard but nobody is looking at it\"."
+  },
+  {
+    "query": "What are the four steps to become more impact-focused?",
+    "relevant_documents": [
+      "doc_05.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The four steps to become more impact-focused are: \"Step 1: Understand what impact looks like for your role and measure your success accordingly\", \"Step 2: Ensure your work solves a real business problem\", \"Step 3: Ensure there is buy-in for your work\", and \"Step 4: Focus your time on the highest-impact thing\"."
+  },
+  {
+    "query": "What are the risk classifications for AI?",
+    "relevant_documents": [
+      "doc_06.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The risk classifications are: \"minimal risk\", \"high-risk\", \"unacceptable risk\", and \"specific transparency risk\""
+  },
+  {
+    "query": "What are the rules for developing general purpose AI models?",
+    "relevant_documents": [
+      "doc_06.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "General purpose AI models that were trained using a total computing power of more than 10^25 FLOPs are considered to carry systemic risks. 12 months after the AI Act enters into force, the obligations for general purpose AI governance become applicable. Providers of general purpose AI models, which are trained on large data amounts and therefore prone to high energy consumption, are required to disclose energy consumption. Providers of free and open-source models are exempted from most of obligations, but this exemption does not cover obligations for providers of general purpose AI models with systemic risks."
+  },
+  {
+    "query": "What are the emperor's aliases?",
+    "relevant_documents": [
+      "doc_07.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The emperor has also known as the \"Dream Guardian\", the \"Dream Visitor\", and \"Balduran\"."
+  },
+  {
+    "query": "Who was Duke Stelmane?",
+    "relevant_documents": [
+      "doc_07.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Duke Stelmane was a major figure of the Knights of the Shield, a lawful and neutral evil conglomerate of politicians and merchants manipulating events behind the scenes, acting as the Emperor's envoy while it secretly kept her enthralled. Duke Belynne Stelmane dies recently."
+  },
+  {
+    "query": "Where was I offered desserts?",
+    "relevant_documents": [
+      "doc_08.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "You ate a delightful puff pastry and custard-filled local treat, and a slice of Basque cheesecake at Otaegui, and you were beckoned with cake in the camino."
+  },
+  {
+    "query": "What forms of exercise did we do?",
+    "relevant_documents": [
+      "doc_08.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "You did hiking and surfing."
+  },
+  {
+    "query": "Who is in the family that this film is about?",
+    "relevant_documents": [
+      "doc_09.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The film takes the perspective of the Hoss family. The Hoss family consists of: the patriarch Rudolf and his wife, Hedwig;their two sons and three daughters, the youngest still a baby; and Hedwig's mother."
+  },
+  {
+    "query": "What items do Rudolf's family take from the Jews and who takes them?",
+    "relevant_documents": [
+      "doc_09.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Rudolf's wife, Hedwig, often receives luxury and expensive items taken from the Jews. On one occasion, she is seen receiving a fancy fur coat with lipstick lying inside one of the pockets. The Rudolf's children are also seen collecting and playing with gold teeth taken from the remains of the dead Jews."
+  },
+  {
+    "query": "What are the proposed changes that affect healthcare?",
+    "relevant_documents": [
+      "doc_10.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The proposed changes that affect healthcare are: any possible schemes thought up by Government, Council , NHS etc,  such as closure of Hosptitals, workplace parking levy etc will be preceded with a Public Consultation which we will then ignore; in an effort to reduce the problems faced by the NHS , it is proposed to reduce pregnancy from nine to seven months; and with Government helped finance, AstraZeneca should buy out Pfizer, then, as we would have the rights to Viagra, the economy may stay up longer."
+  },
+  {
+    "query": "What versions of the Manicfesto are there?",
+    "relevant_documents": [
+      "doc_10.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "There is the Manicfesto proposals, the General Election 2022 Manicfesto, and the General Election 2019 Manicfesto."
+  },
+  {
+    "query": "Other than this blog post, what has the author written?",
+    "relevant_documents": [
+      "doc_11.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The author has also written: a paper about the emergence of instabilities in large language models and a more accessible blog post on the same topic; a LLM.int8() paper; a sparse training blog post; a TPU vs GPU blog post; and a paper about k-bit inference scaling laws."
+  },
+  {
+    "query": "In what contexts is BERT mentioned?",
+    "relevant_documents": [
+      "doc_11.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "It is mentioned that for BERT large during training, the input and weight matrix of any matrix multiplication fit neatly into the L2 cache of Ada (but not other Us). The author also mentions that they benchmarked the time for 500 mini-batches for BERT Large during inference (excluding the softmax layer) on the 4x RTX 2080 Ti system. They chose BERT Large inference since, from their experience, this is the deep learning model that stresses the GPU the most."
+  },
+  {
+    "query": "What data structures does Gleam natively support?",
+    "relevant_documents": [
+      "doc_12.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Gleam supports strings, tuples, lists, and dictionaries."
+  },
+  {
+    "query": "What things will cause a compilation error in Gleam?",
+    "relevant_documents": [
+      "doc_12.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "In Gleam, let and = can be used for pattern matching, but you’ll get compile errors if there’s a type mismatch. Functions can optionally have their argument and return types annotated in Gleam. These type annotations will always be checked by the compiler and throw a compilation error if not valid.\n\nThe following code will also throw a compilation error:\nlet list = [2, 3, 4]\nlet list = [1, ..list]\nlet [1, second_element, ..] = list\n[1.0, ..list] // compile error, type mismatch"
+  },
+  {
+    "query": "Where is broadcasting used?",
+    "relevant_documents": [
+      "doc_13.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Broadcasting is used to do the < comparision between the column vector [0, 1, 2, 3] and the row vector [0, 1, 2, 3], which is one of the steps to make a causal language modelling mask. Broadcasting is also used to add pos_emb and tok_emb elementwise to get the new representations of the tokens with positional information."
+  },
+  {
+    "query": "What is Karpathy known for?",
+    "relevant_documents": [
+      "doc_13.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Karpathy A is listed as the author of the Tiny Shakespeare dataset and the creator of an 'exellent GPT from scratch tutorial'."
+  },
+  {
+    "query": "What things did Jackie remember differently to what she saw?",
+    "relevant_documents": [
+      "doc_14.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "In her and Perry's childhood home, Jackie didn't remember having a projector room and she remembered the doorway to the kitchen being on the other side of the living room. She also remembered that she had almost killed her brother, Perry, seven hundred and thirty days ago in a car accident, when she actually did kill her brother in that accident."
+  },
+  {
+    "query": "What references to alcohol are there",
+    "relevant_documents": [
+      "doc_14.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The narrator, Jackie, had been sober for seven hundred and thirty days. Seven hundred and thirty days ago, Jackie and Perry had gotten into a car accident that almost killed the two because Jackie had been driving after drinking Bacardi Limon.\n\nJackie saw a translucent memmory of her dad sitting motionless at a table with an empty glass of Apple-Schnapple and an empty bottle of Jim Beam. Jackie also remembered he father giving her beer as a child and her mother ignoring this.\n\nShe used the death of her parents as an excuse for her alcoholism for so long, because admitting that they helped create the monster she would eventually become was like a knife to the heart. And knowing she had been too weak to conquer the addiction from her own volition just made the weapon twist in her chest.\n\nFinally, at the end of the story, Jackie licked the cracks on her lips as her eyes closed shut, imagining the oaky comfort of bourbon on her tongue. She felt herself drift, which she thought a good thing, because she needed the rest."
+  },
+  {
+    "query": "Where does the Doctor say that he is a time lord?",
+    "relevant_documents": [
+      "doc_15.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The Doctor declares that he is the last of the time lords in the Tardis and in a memory in the airlock door."
+  },
+  {
+    "query": "Who are the characters in this script?",
+    "relevant_documents": [
+      "doc_15.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The characters in this script are: RUBY, DOCTOR, CARLA, ERIC, BABIES, POPPY, MARCEL?, ADJANI?, SANDRA?, NAN-E, JOCELYN, COMPUTER, and the Bogeyman."
+  },
+  {
+    "query": "What can moss be used for?",
+    "relevant_documents": [
+      "doc_16.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Harvesting moss gives 1 foraging exp per moss and speed gro requires five moss."
+  },
+  {
+    "query": "What are all of the sources of battery packs that have ever existed?",
+    "relevant_documents": [
+      "doc_16.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Weeds in the Mutant Bug Lair used to turn into battery battery packs in the winter and the solar panels currently slowly generate battery packs when left in the sun."
+  },
+  {
+    "query": "What things does Scratch do?",
+    "relevant_documents": [
+      "doc_17.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Scratch: re-edited the \"Return\" novel manuscript into a horror story, making it take effect in reality; escapes Cauldron Lake; kills Jaakko and escapes from captivity, unsuccessfully attempting to take the Clicker from Saga; possesses Casey, steals the Clicker, and throws Saga into the Dark Place; and posseses Alan again before being killed."
+  },
+  {
+    "query": "What is Alan tricked into believing by his wife?",
+    "relevant_documents": [
+      "doc_17.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "Alan believes that while being possessed by the Dark Presence, he torments Alice with visions of his alter ego, Scratch, which eventually leading to her suicide. Alice had actually tricked Alan into thinking she had committing suicide by choosing to return the Dark Place as part of a plan to help him eventually escape, explaining that the only way he can escape the loops is through \"ascension.\""
+  },
+  {
+    "query": "Which books have dragons in them?",
+    "relevant_documents": [
+      "doc_18.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The books 'To Shape a Dragon’s Breath', 'FOURTH WING', and 'Day of the Fallen Night' have dragons in them."
+  },
+  {
+    "query": "Which books contain multiple narratives?",
+    "relevant_documents": [
+      "doc_18.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The books 'Same Bed Different Dreams', 'EVERY DROP IS A MAN’S NIGHTMARE', 'The Museum of Human History', 'Witch King', and 'The Terraformers' each use multiple narratives."
+  },
+  {
+    "query": "What is the recommended way to index text for question-answering?",
+    "relevant_documents": [
+      "doc_19.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "It is recommended to first apply text normalization processes such as tokenization, stemming, and the removal of stop words to enhance the text’s suitability for indexing. Pretrained LMs can then be used to generate semantic vector representations of texts. These vectors are stored, enabling rapid and precise retrieval from extensive data collections, significantly enhancing retrieval efficiency. Sentence-level indexing is more appropriate than document-level indexing for summarizing documents to precisely locate answers."
+  },
+  {
+    "query": "What are the advantages and disadvantages of the BM25 algorithm?",
+    "relevant_documents": [
+      "doc_19.txt"
+    ],
+    "category": "multi_passage",
+    "answer_text": "The advantage of BM25 is that it is efficient. The disadvantage of the BM25 algorithm is that it focuses on term frequency and presence for document algorithm, so it often overlooks the semantic information of queries."
+  },
+  {
+    "query": "How much health does the Mutant Bullet Kin have?",
+    "relevant_documents": [
+      "doc_00.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "Where can bishops be found?",
+    "relevant_documents": [
+      "doc_00.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What happened on day 10?",
+    "relevant_documents": [
+      "doc_01.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What did the goblins say?",
+    "relevant_documents": [
+      "doc_01.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "Why was the H100 GPU chosen for computation?",
+    "relevant_documents": [
+      "doc_02.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "Which masked language model was chosen for the AI?",
+    "relevant_documents": [
+      "doc_02.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "When was GPT 4 made available",
+    "relevant_documents": [
+      "doc_03.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What Tensorflow features are supported?",
+    "relevant_documents": [
+      "doc_03.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "How can I create graphs?",
+    "relevant_documents": [
+      "doc_04.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What is the name of the Java version of marimo?",
+    "relevant_documents": [
+      "doc_04.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What is step 5?",
+    "relevant_documents": [
+      "doc_05.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What is the advice for data scientists in finance companies?",
+    "relevant_documents": [
+      "doc_05.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What obligations are robots expected to follow?",
+    "relevant_documents": [
+      "doc_06.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "How long are the minimum prison sentences for rule breakers?",
+    "relevant_documents": [
+      "doc_06.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What needs to be done to kiss the Emperor?",
+    "relevant_documents": [
+      "doc_07.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "How many wings did Balduran have?",
+    "relevant_documents": [
+      "doc_07.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What is the author's favourite thing about Barcelona?",
+    "relevant_documents": [
+      "doc_08.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "Did the author prefer Madrid or San Sebastian?",
+    "relevant_documents": [
+      "doc_08.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "Who plays the boy in striped pyjamas?",
+    "relevant_documents": [
+      "doc_09.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What relgion are the members of the Hoss family?",
+    "relevant_documents": [
+      "doc_09.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What is the policy on semi-skimmed milk?",
+    "relevant_documents": [
+      "doc_10.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What kind of pumps will be given to people to solve inflation?",
+    "relevant_documents": [
+      "doc_10.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "Which TPU is recommended?",
+    "relevant_documents": [
+      "doc_11.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What is the rest temperature of the RTX 4090 GPU?",
+    "relevant_documents": [
+      "doc_11.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What does the ++ operator do in Gleam?",
+    "relevant_documents": [
+      "doc_12.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "How do sets in Python compare to sets in Gleam?",
+    "relevant_documents": [
+      "doc_12.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "How many parameters does the transformer model have?",
+    "relevant_documents": [
+      "doc_13.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What is the advantage of transformers other other models?",
+    "relevant_documents": [
+      "doc_13.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What brand of bourbon did the narrator drink?",
+    "relevant_documents": [
+      "doc_14.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "Who is Perry and Jackie's sibling?",
+    "relevant_documents": [
+      "doc_14.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What colour is Nan-E?",
+    "relevant_documents": [
+      "doc_15.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What does Robby, the baby, say to the Doctor?",
+    "relevant_documents": [
+      "doc_15.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "In what version was the velociraptor introduced?",
+    "relevant_documents": [
+      "doc_16.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What was added in version 1.5.7?",
+    "relevant_documents": [
+      "doc_16.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "Why did Saga stab Scratch?",
+    "relevant_documents": [
+      "doc_17.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "What caliber is the bullet of light?",
+    "relevant_documents": [
+      "doc_17.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "In 'he who drowned the world', why did Gong Li sacrifice her brother?",
+    "relevant_documents": [
+      "doc_18.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "Which book is the best?",
+    "relevant_documents": [
+      "doc_18.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "Which paper by Hinton et. al. was used in this paper?",
+    "relevant_documents": [
+      "doc_19.txt"
+    ],
+    "category": "no_answer"
+  },
+  {
+    "query": "Why was hardware such a limiting factor in this research?",
+    "relevant_documents": [
+      "doc_19.txt"
+    ],
+    "category": "no_answer"
   }
 ]
