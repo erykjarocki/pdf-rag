@@ -17,6 +17,7 @@ theme:
 nav:
   - Home: index.md
   - Architecture: architecture.md
+  - Pipeline Deep Dive: pipeline-deep-dive.md
   - Configuration: configuration.md
   - MCP Reference: api-reference.md
   - Testing: testing.md

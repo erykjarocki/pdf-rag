@@ -15,7 +15,10 @@ mcp = FastMCP("doc-rag")
 
 @mcp.tool()
 def search_document_tool(
-    question: str, document: str | None = None, rerank: bool | None = None
+    question: str,
+    document: str | None = None,
+    rerank: bool | None = None,
+    top_k: int | None = None,
 ) -> str:
     """Search indexed documents for relevant text fragments using semantic similarity.
 
@@ -34,12 +37,16 @@ def search_document_tool(
         rerank: Whether to apply cross-encoder re-ranking for higher precision.
             If None, uses the default from config. Enable for complex queries
             where precision matters more than speed.
+        top_k: Maximum number of results to return. If None, uses the config
+            default (8). Increase for broad queries that may span multiple
+            sections.
 
     Returns: Formatted text fragments with source references (document, chapter, page).
         Each fragment includes enough context to answer the query. If nothing
         relevant is found, returns "No relevant fragments found."
     """
-    fragments = search_book(question, book=document, rerank=rerank)
+    k = top_k if top_k is not None else None
+    fragments = search_book(question, book=document, rerank=rerank, top_k=k)
     if not fragments:
         return "No relevant fragments found in the knowledge base."
     return format_fragments_for_prompt(fragments)
@@ -47,7 +54,10 @@ def search_document_tool(
 
 @mcp.tool()
 def search_document_raw(
-    question: str, document: str | None = None, rerank: bool | None = None
+    question: str,
+    document: str | None = None,
+    rerank: bool | None = None,
+    top_k: int | None = None,
 ) -> str:
     """Search indexed documents and return raw structured JSON with relevance scores.
 
@@ -61,6 +71,9 @@ def search_document_raw(
         document: Optional document/collection name to restrict search. Use
             list_documents_tool() to discover available names.
         rerank: Whether to apply cross-encoder re-ranking. If None, uses config default.
+        top_k: Maximum number of results to return. If None, uses the config
+            default (8). Increase for broad queries that may span multiple
+            sections.
 
     Returns: JSON array of fragments, each with keys: text, book, chapter, page,
         score (0-1, higher = more relevant), and optionally rerank_score when
@@ -69,13 +82,17 @@ def search_document_raw(
     """
     import json
 
-    fragments = search_book(question, book=document, rerank=rerank)
+    k = top_k if top_k is not None else None
+    fragments = search_book(question, book=document, rerank=rerank, top_k=k)
     return json.dumps(fragments, ensure_ascii=False, indent=2)
 
 
 @mcp.tool()
 def search_document_trace(
-    question: str, document: str | None = None, rerank: bool | None = None
+    question: str,
+    document: str | None = None,
+    rerank: bool | None = None,
+    top_k: int | None = None,
 ) -> str:
     """Search documents with full pipeline trace showing retrieval and reranking details.
 
@@ -89,11 +106,15 @@ def search_document_trace(
         question: A detailed natural-language query.
         document: Optional document/collection name to restrict search.
         rerank: Whether to apply cross-encoder re-ranking. If None, uses config default.
+        top_k: Maximum number of results to return. If None, uses the config
+            default (8). Increase for broad queries that may span multiple
+            sections.
 
     Returns: Human-readable trace report with per-stage timing, retrieved
         candidates, and rerank rank changes.
     """
-    result = search_book(question, book=document, rerank=rerank, trace=True)
+    k = top_k if top_k is not None else None
+    result = search_book(question, book=document, rerank=rerank, top_k=k, trace=True)
     if not result.trace:
         return "No trace available."
     return format_trace(result.trace)

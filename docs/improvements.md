@@ -8,7 +8,7 @@
 | 4 | Structured logging | ✅ | 15 min | medium | `src/log.py`, text + JSON formatters, request tracing |
 | 5 | Clean up Qdrant config | ✅ | 5 min | low | Removed dead `QDRANT_PATH`, env-var-driven config |
 | 6 | Better MCP tool descriptions | ✅ | 5 min | medium | Detailed arg docs, usage context, agent guidance |
-| 7 | Configurable `top_k` per request | ⬜ | 5 min | low | Not exposed in MCP tools or API endpoint |
+| 7 | Configurable `top_k` per request | ✅ | 5 min | low | Exposed in all three search MCP tools |
 | 8 | Cache chunks to disk | ⬜ | 15 min | low | Saves re-chunking when only re-embedding |
 | 9 | Tokenizer-based chunking | ✅ | 30 min | high | Exact token counts via model tokenizer, 384-token chunks |
 | 10 | Universal chapter detection | ✅ | 2 hrs | high | 3-layer fallback: TOC → font-size → regex |
@@ -27,7 +27,6 @@
 |----------|------|-----|
 | 1 | Hybrid search BM25+vector (#13) | Biggest retrieval quality gain, catches keyword matches vector search misses |
 | 2 | Query expansion/rewriting (#15) | Improves recall for varied phrasing |
-| 3 | Configurable `top_k` per request (#7) | Quick win, broad queries need more results |
-| 4 | Cache chunks to disk (#8) | Faster iteration during development |
-| 5 | Async ingestion pipeline (#12) | Faster indexing for multi-document workflows |
-| 6 | Async MCP tools (#11) | Enables concurrent tool calls |
+| 3 | Cache chunks to disk (#8) | Faster iteration during development |
+| 4 | Async ingestion pipeline (#12) | Faster indexing for multi-document workflows |
+| 5 | Async MCP tools (#11) | Enables concurrent tool calls |
